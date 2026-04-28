@@ -1,0 +1,86 @@
+--coverage
+
+%%% Auxiliary lemma for the application of a rule forward in order to get an output action in the restriction case %%%
+
+% Predicate about the existence of a free output transition of subject X and object Y from process P
+inductive Res_or_Open: (g:ctx) [g |- names] -> [g ,x:names|- names] -> [g,x:names |- proc] -> [g,x:names |- proc] -> ctype =
+  | DiffName : [g |- fstep (p_res \x. P) (f_out X Y) (p_res \x. P')] -> Res_or_Open [g |- X] [g,x:names |- Y[..]] [g, x:names |- P] [g, x:names |- P']
+  | SameName : [g |- bstep (p_res \x. P) (b_out X) (\x. P')] -> Res_or_Open [g |- X] [g,x:names |- x] [g, x:names |- P] [g, x:names |- P']
+;
+
+% If P can perform the free output transition (fstep P (f_out X Y) P') and X is different from x, then nu x P can perform an output transition of subject X too.
+rec res_or_open: (g:ctx) {X : [g |- names]} {Y : [g,x:names |- names]} [g, x:names |- fstep P (f_out X[..] Y) P'] -> Res_or_Open [g |- X] [g ,x:names|- Y] [g, x:names |- P] [g, x:names |- P'] =
+  / total Y (res_or_open _ _ Y) /
+  mlam X => mlam Y => fn s => case [_,x:names |- Y] of
+  | [_,x:names |- #y[..]] => let [_,x:names |- S] = s in DiffName [_ |- fs_res \x. S]
+  | [_,x:names |- x] => let [_,x:names |- S] = s in SameName [_ |- bs_open \x. S]
+;
+
+
+%%% Auxiliary lemma to decompose the result (R) of an action performed by the process S | !P into two parallel subprocesses: 
+% one, denoted later by Q, which is the result of an action performed by S | (P | P) and another, which is just !P %%%
+
+% Predicate about the existence of a rewriting of the form Q | !P
+inductive Ex_par_rep: (g:ctx) [g |- proc] -> [g |- proc] -> [g |- proc] -> ctype =
+  | Ex_par_rep_def: [g |- fstep (S p_par (P p_par P)) f_tau Q] -> [g |- R] CongM [g |- Q p_par (p_rep P)] -> Ex_par_rep [g |- P] [g |- R] [g |- S]
+;
+
+rec par_rep: (g:ctx) [g |- fstep (S p_par (p_rep P)) f_tau R] -> Ex_par_rep [g |- P] [g |- R] [g |- S] =
+  %/ total s (par_rep _ _ _ _ s) /
+  fn s => case s of
+  | [_ |- fs_par1 S] => Ex_par_rep_def [_ |- fs_par1 S] (C_trans
+    (C_trans
+      (C_trans
+        (C_ctx Rep_unfold (pp2M pidM))
+        (C_ctx Rep_unfold (pp2M (pp2M pidM)))
+        )
+      (C_ctx Par_assoc (pp2M pidM))
+      )
+    Par_assoc
+    )
+  | [_ |- fs_par2 S] => (case [_ |- S] of
+    | [_ |- fs_rep S'] => Ex_par_rep_def [_ |- fs_par2 (fs_par1 S')] (C_trans
+      (C_trans
+        (C_ctx Rep_unfold (pp2M (pp2M pidM)))
+        (C_ctx Par_assoc (pp2M pidM))
+        )
+      Par_assoc
+      )
+    | [_ |- fs_rep_com S1 S2] => Ex_par_rep_def [_ |- fs_par2 (fs_com1 S1 S2)] Par_assoc
+    | [_ |- fs_rep_close S1 S2] => Ex_par_rep_def [_ |- fs_par2 (fs_close1 S1 S2)] Par_assoc
+      )
+  | [_ |- fs_com1 S1 S2] => let [_ |- bs_rep S2'] = [_ |- S2] in Ex_par_rep_def [_ |- fs_com1 S1 (bs_par1 S2')] (C_trans
+    (C_trans
+      (C_ctx Rep_unfold (pp2M (pp2M pidM)))
+      (C_ctx Par_assoc (pp2M pidM))
+      )
+    Par_assoc
+    )
+  | [_ |- fs_com2 S1 S2] => let [_ |- fs_rep S2'] = [_ |- S2] in Ex_par_rep_def [_ |- fs_com2 S1 (fs_par1 S2')] (C_trans
+    (C_trans
+      (C_ctx Rep_unfold (pp2M (pp2M pidM)))
+      (C_ctx Par_assoc (pp2M pidM))
+      )
+    Par_assoc
+    )
+  | [_ |- fs_close1 S1 S2] => let [_ |- bs_rep S2'] = [_ |- S2] in Ex_par_rep_def [_ |- fs_close1 S1 (bs_par1 S2')] (C_trans
+    (C_trans
+      (C_trans
+        (C_ctx Rep_unfold (presM (pp2M (pp2M pidM))))
+        (C_ctx Par_assoc (presM (pp2M pidM)))
+      )
+      (C_ctx Par_assoc (presM pidM))
+    )
+    (C_sym (Sc_ext_par [_,x:names |- _]))
+  )
+  | [_ |- fs_close2 S1 S2] => let [_ |- bs_rep S2'] = [_ |- S2] in Ex_par_rep_def [_ |- fs_close2 S1 (bs_par1 S2')] (C_trans
+    (C_trans
+      (C_trans
+        (C_ctx Rep_unfold (presM (pp2M (pp2M pidM))))
+        (C_ctx Par_assoc (presM (pp2M pidM)))
+      )
+      (C_ctx Par_assoc (presM pidM))
+    )
+    (C_sym (Sc_ext_par [_,x:names |- _]))
+  )
+;

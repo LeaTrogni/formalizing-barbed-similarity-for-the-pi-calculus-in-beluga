@@ -1,0 +1,165 @@
+%%% Properties of pairs of contexts %%%
+
+% pctxM is symmetric
+rec pctxM_symm: (g:ctx) (g':ctx) 
+    pctxM [g' ⊢ P ] [g ⊢ CP ] [g' ⊢ Q] [g ⊢ CQ] -> pctxM [g' ⊢ Q ] [g ⊢ CQ ] [g' ⊢ P] [g ⊢ CP] =
+  / total d (pctxM_symm _ _ _ _ _ _ d) /
+  fn d => case d of 
+  | pidM => pidM
+  | pinM d' => let ih = pctxM_symm d' in pinM ih
+  | poutM d' => let ih = pctxM_symm d' in poutM ih
+  | pp1M d' => let ih = pctxM_symm d' in pp1M ih
+  | pp2M d' => let ih = pctxM_symm d' in pp2M ih
+  | presM d' => let ih = pctxM_symm d' in presM ih
+  | prepM d' => let ih = pctxM_symm d' in prepM ih
+;
+
+% Given pctxM [g' |- P] [g |- CP] [g' |- R] [g |- CR], for each [g' |- Q] there exists some [g |- CQ] such that both pctxM [g' |- P] [g |- CP] [g' |- Q] [g |- CQ] and pctxM [g' |- Q] [g |- CQ] [g' |- R] [g |- CR] hold
+
+% Auxiliary existence predicate
+inductive Ex_ctx: (g':ctx) (g:ctx) [g' |- proc] -> [g |- proc] -> [g' |- proc] -> [g |- proc] -> [g' |- proc] -> ctype =
+    | Ex_ctx_def: (g':ctx) (g:ctx)
+        pctxM [g' |- P] [g |- CP] [g' |- Q] [g |- CQ] -> 
+        pctxM [g' |- Q] [g |- CQ] [g' |- R] [g |- CR] -> 
+        Ex_ctx [g' |- P] [g |- CP] [g' |- R] [g |- CR] [g' |- Q]
+;
+
+rec pctxM_trans: (g':ctx) (g:ctx) {Q:[g' |- proc]} pctxM [g' |- P] [g |- CP] [g' |- R] [g |- CR] 
+  -> Ex_ctx [g' |- P] [g |- CP] [g' |- R] [g |- CR] [g' |- Q] =
+    / total d (pctxM_trans _ _ _ _ _ _ _ d) /
+    mlam Q => fn d => case d of
+    | pidM => Ex_ctx_def pidM pidM
+    | pinM d' => let Ex_ctx_def d1 d2 = pctxM_trans [_ |- Q] d' in Ex_ctx_def (pinM d1) (pinM d2)
+    | poutM d' => let Ex_ctx_def d1 d2 = pctxM_trans [_ |- Q] d' in Ex_ctx_def (poutM d1) (poutM d2)
+    | pp1M d' => let Ex_ctx_def d1 d2 = pctxM_trans [_ |- Q] d' in Ex_ctx_def (pp1M d1) (pp1M d2)
+    | pp2M d' => let Ex_ctx_def d1 d2 = pctxM_trans [_ |- Q] d' in Ex_ctx_def (pp2M d1) (pp2M d2)
+    | presM d' => let Ex_ctx_def d1 d2 = pctxM_trans [_ |- Q] d' in Ex_ctx_def (presM d1) (presM d2)
+    | prepM d' => let Ex_ctx_def d1 d2 = pctxM_trans [_ |- Q] d' in Ex_ctx_def (prepM d1) (prepM d2)
+;
+
+% pctxM is functional
+rec pctxM_funct: (g':ctx) (g:ctx) pctxM [g' |- P] [g |- CP] [g' |- P] [g |- CP'] -> [g |- eqp CP CP'] =
+  / total d (pctxM_funct _ _ _ _ _ d) /
+  fn d => case d of 
+  | pidM => [_ |- refp]
+  | pinM d' => let [_,x:names |- refp] = pctxM_funct d' in [_ |- refp]
+  | poutM d' => let [_ |- refp] = pctxM_funct d' in [_ |- refp]
+  | pp1M d' => let [_ |- refp] = pctxM_funct d' in [_ |- refp]
+  | pp2M d' => let [_ |- refp] = pctxM_funct d' in [_ |- refp]
+  | presM d' => let [_, x:names |- refp] = pctxM_funct d' in [_ |- refp]
+  | prepM d' => let [_ |- refp] = pctxM_funct d' in [_ |- refp]
+;
+
+% pctxM is compositional
+rec pctxM_comp: (g1:ctx) (g2:ctx) (g3:ctx) pctxM [g1 |- P] [g2 |- CP] [g1 |- Q] [g2 |- CQ] -> pctxM [g2 |- CP] [g3 |- CCP] [g2 |- CQ] [g3 |- CCQ] -> pctxM [g1 |- P] [g3 |- CCP] [g1 |- Q] [g3 |- CCQ] =
+  / total d2 (pctxM_comp _ _ _ _ _ _ _ _ _ _ d2) /
+  fn d1 => fn d2 => case d2 of
+  | pidM => d1
+  | pinM d' => pinM (pctxM_comp d1 d')
+  | poutM d' => poutM (pctxM_comp d1 d')
+  | pp1M d' => pp1M (pctxM_comp d1 d')
+  | pp2M d' => pp2M (pctxM_comp d1 d')
+  | presM d' => presM (pctxM_comp d1 d')
+  | prepM d' => prepM (pctxM_comp d1 d')
+;
+
+% if Q has all the barbs of P, then C[Q] has all the barbs of C[Q]
+rec pctxM_preserves_barb_in : (g:ctx) (g':ctx) ({Y : [g' |- names]} Barb_in [g' |- P] [g' |- Y] -> Barb_in [g' |- Q] [g' |- Y]) -> pctxM [g' |- P] [g |- CP] [g' |- Q] [g |- CQ] -> Barb_in [g |- CP] [g |- X] -> Barb_in [g |- CQ] [g |- X] =
+  / total cp (pctxM_preserves_barb_in _ _ _ _ _ _ _ _ cp) /
+  fn h => fn cp => fn b =>  let Barb_in_b s = b in case cp of 
+  | pidM => h [_ |- _] b
+  | pinM cp' => let [_ |- bs_in] = s in Barb_in_b [_ |- bs_in]
+  | poutM cp' => impossible s
+  | pp1M cp' => (case s of
+    | [_ |- bs_par1 S] => let Barb_in_b [_ |- S'] = pctxM_preserves_barb_in h cp' (Barb_in_b [_ |- S]) in Barb_in_b [_ |- bs_par1 S']
+    | [_ |- bs_par2 S] => Barb_in_b [_ |- bs_par2 S]
+    )
+  | pp2M cp' => (case s of
+    | [_ |- bs_par1 S] => Barb_in_b [_ |- bs_par1 S]
+    | [_ |- bs_par2 S] => let Barb_in_b [_ |- S'] = pctxM_preserves_barb_in h cp' (Barb_in_b [_ |- S]) in Barb_in_b [_ |- bs_par2 S']
+    )
+  | presM cp' => let [_ |- bs_res \x. S] = s in let Barb_in_b [_,x:names |- S'] = pctxM_preserves_barb_in h cp' (Barb_in_b [_,x:names |- S]) in Barb_in_b [_ |- bs_res \x. S']
+  | prepM cp' => let [_ |- bs_rep S] = s in let Barb_in_b [_ |- S'] = pctxM_preserves_barb_in h cp' (Barb_in_b [_ |- S]) in Barb_in_b [_ |- bs_rep S']
+;
+
+rec pctxM_preserves_barb_out : (g:ctx) (g':ctx) ({Y : [g' |- names]} Barb_out [g' |- P] [g' |- Y] -> Barb_out [g' |- Q] [g' |- Y]) -> pctxM [g' |- P] [g |- CP] [g' |- Q] [g |- CQ] -> Barb_out [g |- CP] [g |- X] -> Barb_out [g |- CQ] [g |- X] =
+  / total cp (pctxM_preserves_barb_out _ _ _ _ _ _ _ _ cp) /
+  fn h => fn cp => fn b => case cp of 
+  | pidM => h [_ |- _] b
+  | pinM cp' => (case b of
+    | Barb_out_f s => impossible s
+    | Barb_out_b s => impossible s
+    )
+  | poutM cp' => (case b of
+    | Barb_out_f s => let [_ |- fs_out] = s in Barb_out_f [_ |- fs_out]
+    | Barb_out_b s => impossible s
+    )
+  | pp1M cp' => (case b of
+    | Barb_out_f s => (case s of
+      | [_ |- fs_par1 S] => let ih = pctxM_preserves_barb_out h cp' (Barb_out_f [_ |- S]) in (case ih of
+        | Barb_out_f [_ |- S'] => Barb_out_f [_ |- fs_par1 S']
+        | Barb_out_b [_ |- S'] => Barb_out_b [_ |- bs_par1 S']
+        )
+      | [_ |- fs_par2 S] => Barb_out_f [_ |- fs_par2 S]
+      )
+    | Barb_out_b s => (case s of
+      | [_ |- bs_par1 S] => let ih = pctxM_preserves_barb_out h cp' (Barb_out_b [_ |- S]) in (case ih of
+        | Barb_out_f [_ |- S'] => Barb_out_f [_ |- fs_par1 S']
+        | Barb_out_b [_ |- S'] => Barb_out_b [_ |- bs_par1 S']
+        )
+      | [_ |- bs_par2 S] => Barb_out_b [_ |- bs_par2 S]
+      )
+    ) 
+  | pp2M cp' => (case b of
+    | Barb_out_f s => (case s of
+      | [_ |- fs_par2 S] => let ih = pctxM_preserves_barb_out h cp' (Barb_out_f [_ |- S]) in (case ih of
+        | Barb_out_f [_ |- S'] => Barb_out_f [_ |- fs_par2 S']
+        | Barb_out_b [_ |- S'] => Barb_out_b [_ |- bs_par2 S']
+        )
+      | [_ |- fs_par1 S] => Barb_out_f [_ |- fs_par1 S]
+      )
+    | Barb_out_b s => (case s of
+      | [_ |- bs_par2 S] => let ih = pctxM_preserves_barb_out h cp' (Barb_out_b [_ |- S]) in (case ih of
+        | Barb_out_f [_ |- S'] => Barb_out_f [_ |- fs_par2 S']
+        | Barb_out_b [_ |- S'] => Barb_out_b [_ |- bs_par2 S']
+        )
+      | [_ |- bs_par1 S] => Barb_out_b [_ |- bs_par1 S]
+      )
+    ) 
+  | presM cp' => (case b of
+    | Barb_out_f s => let [_ |- fs_res \x. S] = s in let ih = pctxM_preserves_barb_out h cp' (Barb_out_f [_,x:names |- S]) in (case ih of
+        | Barb_out_f [_,x:names |- S'] => let ro = res_or_open [_ |- _] [_,x:names |- _] [_,x:names |- S'] in (case ro of
+          | SameName s' => Barb_out_b s'
+          | DiffName s' => Barb_out_f s'
+        )
+        | Barb_out_b [_,x:names |- S'] => Barb_out_b [_ |- bs_res \x. S']
+        )
+    | Barb_out_b s => (case s of
+      | [_ |- bs_res \x. S] => let ih = pctxM_preserves_barb_out h cp' (Barb_out_b [_,x:names |- S]) in (case ih of
+        | Barb_out_f [_,x:names |- S'] => let ro = res_or_open [_ |- _] [_,x:names |- _] [_,x:names |- S'] in (case ro of
+          | SameName s' => Barb_out_b s'
+          | DiffName s' => Barb_out_f s'
+        )
+        | Barb_out_b [_,x:names |- S'] => Barb_out_b [_ |- bs_res \x. S']
+        )
+      | [_ |- bs_open \x. S] => let ih = pctxM_preserves_barb_out h cp' (Barb_out_f [_,x:names |- S]) in (case ih of
+        | Barb_out_f [_,x:names |- S'] => let ro = res_or_open [_ |- _] [_,x:names |- _] [_,x:names |- S'] in (case ro of
+          | SameName s' => Barb_out_b s'
+          | DiffName s' => Barb_out_f s'
+        )
+        | Barb_out_b [_,x:names |- S'] => Barb_out_b [_ |- bs_res \x. S']
+        )
+      )
+    )
+  | prepM cp' => (case b of
+    | Barb_out_f s => let [_ |- fs_rep S] = s in let ih = pctxM_preserves_barb_out h cp' (Barb_out_f [_ |- S]) in (case ih of
+        | Barb_out_f [_ |- S'] => Barb_out_f [_ |- fs_rep S']
+        | Barb_out_b [_ |- S'] => Barb_out_b [_ |- bs_rep S']
+        )
+    | Barb_out_b s => let [_ |- bs_rep S] = s in let ih = pctxM_preserves_barb_out h cp' (Barb_out_b [_ |- S]) in (case ih of
+        | Barb_out_f [_ |- S'] => Barb_out_f [_ |- fs_rep S']
+        | Barb_out_b [_ |- S'] => Barb_out_b [_ |- bs_rep S']
+        )
+    )
+;
+

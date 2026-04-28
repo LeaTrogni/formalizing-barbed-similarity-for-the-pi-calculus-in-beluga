@@ -1,0 +1,231 @@
+%%% Strengthening lemma for substitutions: if P(sigma) can perform an input action of subject X, then P can perform an input action of subject Y such that X = Y(sigma). Similarly, if P(sigma) can perform an output action of subject X, then P can perform an output action of subject Y such that X = Y(sigma). %%%
+
+% Auxiliary predicate to formalize the existence of an input action
+inductive Ex_subst_step_in : (g:ctx) (h:ctx) $[h |- g] -> [g |- proc] -> [h |- names] -> ctype =
+  | Ex_subst_step_in_def: [g |- bstep P (b_in X') \x. P''] -> Ex_subst_step_in $[h |- $S] [g |- P] [h |- X'[$S]]
+;
+
+% Input action case
+rec strength_subst_in: (g:ctx) (h:ctx) {P : [g |- proc]}  {$S : $[h |- g]} [h |- bstep P[$S] (b_in X) \x. P'] -> Ex_subst_step_in $[h |- $S] [g |- P] [h |- X] =
+  mlam P => mlam $S => fn s => case [_ |- P] of
+  | [g |- p_zero] => impossible s
+  | [g |- p_in X' \x. P'] => let [g |- bs_in] = s in Ex_subst_step_in_def [_ |- bs_in]
+  | [_ |- p_out X Y P'] => impossible s
+  | [_ |- P1 p_par P2] => (case s of
+    | [_ |- bs_par1 S'] => let Ex_subst_step_in_def [_ |- S''] = strength_subst_in [_ |- P1] $[_ |- $S] [_ |- S'] in  Ex_subst_step_in_def [_ |- bs_par1 S''] 
+    | [_ |- bs_par2 S'] => let Ex_subst_step_in_def [_ |- S''] = strength_subst_in [_ |- P2] $[_ |- $S] [_ |- S'] in Ex_subst_step_in_def [_ |- bs_par2 S''] 
+  )
+  | [_ |- p_res \x. P'] => let [_ |- bs_res \x. S'] = s in let Ex_subst_step_in_def [_,x:names |- S''] = strength_subst_in [_,x:names |- P'] $[_,x:names |- $S[..],x] [_,x:names |- S'] in Ex_subst_step_in_def [_ |- bs_res \x. S''] 
+  | [_ |- p_rep P'] => let [_ |- bs_rep S'] = s in let Ex_subst_step_in_def [_ |- S''] = strength_subst_in [_ |- P'] $[_ |- $S] [_ |- S'] in  Ex_subst_step_in_def [_ |- bs_rep S''] 
+;
+
+% Auxiliary predicate to formalize the existence of an output action
+inductive Ex_subst_step_out : (g:ctx) (h:ctx) $[h |- g] -> [g |- proc] -> [h |- names] -> ctype =
+  | Ex_subst_step_out_f_def: [g |- fstep P (f_out X' Y') P''] -> Ex_subst_step_out $[h |- $S] [g |- P] [h |- X'[$S]]
+  | Ex_subst_step_out_b_def: [g |- bstep P (b_out X') \x. P''] -> Ex_subst_step_out $[h |- $S] [g |- P] [h |- X'[$S]]
+;
+
+% Free output action case
+rec strength_subst_out_f: (g:ctx) (h:ctx) {P : [g |- proc]} {$S : $[h |- g]} [h |- fstep P[$S] (f_out X Y) P'] -> Ex_subst_step_out $[h |- $S] [g |- P] [h |- X] =
+  mlam P => mlam $S => fn s => case [_ |- P] of
+  | [_ |- p_zero] => impossible s
+  | [_ |- p_in X \x. P'] => impossible s
+  | [_ |- p_out X Y P'] => let [_ |- fs_out] = s in Ex_subst_step_out_f_def [_ |- fs_out] 
+  | [_ |- P1 p_par P2] => (case s of
+    | [_ |- fs_par1 S'] => let e = strength_subst_out_f [_ |- P1] $[_ |- $S] [_ |- S'] in (case e of
+         | Ex_subst_step_out_f_def [_ |- S''] => Ex_subst_step_out_f_def [_ |- fs_par1 S'']
+         | Ex_subst_step_out_f_def [_ |- fs_out] => Ex_subst_step_out_f_def [_ |- fs_par1 fs_out]
+         | Ex_subst_step_out_f_def [_ |- fs_par1 S''] => Ex_subst_step_out_f_def [_ |- fs_par1 (fs_par1 S'')]
+         | Ex_subst_step_out_f_def [_ |- fs_par2 S''] => Ex_subst_step_out_f_def [_ |- fs_par1 (fs_par2 S'')])
+    | [_ |- fs_par2 S'] => let e = strength_subst_out_f [_ |- P2] $[_ |- $S] [_ |- S'] in (case e of
+         | Ex_subst_step_out_f_def [_ |- S''] => Ex_subst_step_out_f_def [_ |- fs_par2 S'']
+         | Ex_subst_step_out_f_def [_ |- fs_out] => Ex_subst_step_out_f_def [_ |- fs_par2 fs_out]
+         | Ex_subst_step_out_f_def [_ |- fs_par1 S''] => Ex_subst_step_out_f_def [_ |- fs_par2 (fs_par1 S'')]
+         | Ex_subst_step_out_f_def [_ |- fs_par2 S''] => Ex_subst_step_out_f_def [_ |- fs_par2 (fs_par2 S'')])
+  )
+  | [g |- p_res \x. P'] => let [h |- fs_res \x. S] = s in let e = strength_subst_out_f [g,x:names |- P'] $[h,x:names |- $S[..],x] [h,x:names |- S] in let Ex_subst_step_out_f_def [_,x:names |- S'] = e in let ro = res_or_open [_ |- _] [_,x:names |- _] [_,x:names |- S'] in (case ro of
+    | DiffName s' => Ex_subst_step_out_f_def s'
+    | SameName s' => Ex_subst_step_out_b_def s'
+  )
+  | [_ |- p_rep P'] => let [_ |- fs_rep S'] = s in let e = strength_subst_out_f [_ |- P'] $[_ |- $S] [_ |- S'] in 
+  (case e of
+    | Ex_subst_step_out_f_def [_ |- S''] => Ex_subst_step_out_f_def [_ |- fs_rep S'']
+    | Ex_subst_step_out_f_def [_ |- fs_out] => Ex_subst_step_out_f_def [_ |- fs_rep fs_out]
+    | Ex_subst_step_out_f_def [_ |- fs_par1 S''] => Ex_subst_step_out_f_def [_ |- fs_rep (fs_par1 S'')]
+    | Ex_subst_step_out_f_def [_ |- fs_par2 S''] => Ex_subst_step_out_f_def [_ |- fs_rep (fs_par2 S'')])
+;
+
+% Auxiliary lemma: if (p_out X x P) = Q and sigma is a substitution and x is a fixpoint of sigma, then (p_out X(sigma) x P(sigma)) = Q(sigma)
+rec subst_eq: (g:ctx) (h:ctx) {$S : $[h |- g]} {P : [g,x:names |- proc]} [g,x:names |- eqp (p_out X x P) Q] -> [h,x:names |- eqp (p_out X[$S[..],x] x P[$S[..],x]) Q[$S[..],x]] =
+  mlam $S => mlam P => fn e => let [g,x:names |- refp] = e in [_,x:names |- refp]
+;
+
+% Bound output action case
+rec strength_subst_out_b: (g:ctx) (h:ctx) {P : [g |- proc]} {$S : $[h |- g]} [h |- bstep P[$S] (b_out X) \x. P'] -> Ex_subst_step_out $[h |- $S] [g |- P] [h |- X] =
+  mlam P => mlam $S => fn s => case [_ |- P] of
+  | [_ |- p_zero] => impossible s
+  | [_ |- p_in X \x. P'] => impossible s
+  | [_ |- p_out X Y P'] => impossible s
+  | [_ |- P1 p_par P2] => (case s of
+    | [_ |- bs_par1 S'] => let Ex_subst_step_out_b_def [_ |- S''] = strength_subst_out_b [_ |- P1] $[_ |- $S] [_ |- S'] in  Ex_subst_step_out_b_def [_ |- bs_par1 S''] 
+    | [_ |- bs_par2 S'] => let Ex_subst_step_out_b_def [_ |- S''] = strength_subst_out_b [_ |- P2] $[_ |- $S] [_ |- S'] in  Ex_subst_step_out_b_def [_ |- bs_par2 S''] 
+  )
+  | [g |- p_res \x. P'] => (case s of
+    | [h |- bs_res \x. S'] => let Ex_subst_step_out_b_def [g,x:names |- S''] = strength_subst_out_b [g,x:names |- P'] $[h,x:names |- $S[..],x] [h,x:names |- S'] in Ex_subst_step_out_b_def [g |- bs_res \x. S'']
+    | [h |- bs_open \x. S'] => let e = strength_subst_out_f [g,x:names |- P'] $[h,x:names |- $S[..],x] [h,x:names |- S'] in let Ex_subst_step_out_f_def [_,x:names |- S''] = e in let ro = res_or_open [_ |- _] [_,x:names |- _] [_,x:names |- S''] in (case ro of
+    | DiffName s' => Ex_subst_step_out_f_def s'
+    | SameName s' => Ex_subst_step_out_b_def s'
+  )
+  )
+  | [_ |- p_rep P'] => let [_ |- bs_rep S'] = s in let Ex_subst_step_out_b_def [_ |- S''] = strength_subst_out_b [_ |- P'] $[_ |- $S] [_ |- S'] in  Ex_subst_step_out_b_def [_ |- bs_rep S''] 
+;
+
+%%% Properties of the characterization of barbed precongruence %%%
+
+% It is included in barbed similarity
+rec barbpre'_implies_barbsim:  BarbPre' [g |- P] [g |- Q] -> BarbSim [g |- P] [g |- Q] =
+   fn bp' => let BC' bs = bp' in (barb_sim_trans (barb_sim_trans (structcong_implies_barbsim_right Par_unit) (bs $[_ |- ..] [_ |- p_zero])) (structcong_implies_barbsim_left Par_unit))
+;
+
+% The relation obtained by composing it with a substitution, an input prefix and another parallel process is also included in barbed similarity
+rec barbpre'_in: (g:ctx) (h:ctx) {$S :$[h |- g]} BarbPre' [g,x:names |- P] [g,x:names |- Q] -> BarbSim [h |- (p_in X \z. P[$S[..],z]) p_par R] [h |- (p_in X \z. Q[$S[..],z]) p_par R] =
+  fun $[_ |- $S] bp' .BarbSim_barb_in b => let Barb_in_b s = b in (case s of
+    | [_ |- bs_par1 S] => let [_ |- bs_in] = [_ |- S] in Barb_in_b [_ |- bs_par1 bs_in]
+    | [_ |- bs_par2 S] => Barb_in_b [_ |- bs_par2 S]
+  )
+    | $[_ |- $S] bp' .BarbSim_barb_out b => (case b of
+      | Barb_out_b s => (case s of
+        | [_ |- bs_par1 S] => impossible [_ |- S]
+        | [_ |- bs_par2 S] => Barb_out_b [_ |- bs_par2 S]
+      )
+      | Barb_out_f s => (case s of
+        | [_ |- fs_par1 S] => impossible [_ |- S]
+        | [_ |- fs_par2 S] => Barb_out_f [_ |- fs_par2 S]
+      )
+    )
+    | $[_ |- $S] bp' .BarbSim_tau s => (case s of
+      | [_ |- fs_par1 S] => impossible [_ |- S]
+      | [_ |- fs_par2 S] => Ex_sim_barb_def [_ |- fs_par2 S] (barbpre'_in $[_ |- $S] bp')
+      | [_ |- fs_com1 S1 S2] => impossible [_ |- S1]
+      | [_ |- fs_com2 S1 S2] => let BC' bs = bp' in let [_ |- bs_in] = [_ |- S1] in Ex_sim_barb_def [_ |- fs_com2 bs_in S2] (bs $[_ |- $S[..],_] [_ |- _])
+      | [_ |- fs_close1 S1 S2] => impossible [_ |- S1]
+      | [_ |- fs_close2 S1 S2] => let BC' bs = bp' in let [_ |- bs_in] = [_ |- S1] in Ex_sim_barb_def [_ |- fs_close2 bs_in S2] (res_barb_sim (bs $[_,x:names |- $S[..],_] [_ |- _]))
+      )
+;
+
+% The relation obtained by composing it with a substitution, an output prefix and another parallel process is also included in barbed similarity
+rec barbpre'_out: (g:ctx) (h:ctx) {$S :$[h |- g]} BarbPre' [g |- P] [g |- Q] -> BarbSim [h |- (p_out X Y P[$S]) p_par R] [h |- (p_out X Y Q[$S]) p_par R] =
+  fun $[_ |- $S] bp' .BarbSim_barb_in b => let Barb_in_b s = b in (case s of
+      | [_ |- bs_par1 S] => impossible [_ |- S]
+      | [_ |- bs_par2 S] => Barb_in_b [_ |- bs_par2 S]
+    )
+    | $[_ |- $S] bp' .BarbSim_barb_out b => (case b of
+      | Barb_out_b s => (case s of
+        | [_ |- bs_par1 S] => impossible [_ |- S]
+        | [_ |- bs_par2 S] => Barb_out_b [_ |- bs_par2 S]
+      )
+      | Barb_out_f s => (case s of
+        | [_ |- fs_par1 S] => let [_ |- fs_out] = [_ |- S] in Barb_out_f [_ |- fs_par1 fs_out]
+        | [_ |- fs_par2 S] => Barb_out_f [_ |- fs_par2 S]
+      )
+    )
+    | $[_ |- $S] bp' .BarbSim_tau s => (case s of
+      | [_ |- fs_par1 S] => impossible [_ |- S]
+      | [_ |- fs_par2 S] => Ex_sim_barb_def [_ |- fs_par2 S] (barbpre'_out $[_ |- $S] bp')
+      | [_ |- fs_com1 S1 S2] => let BC' bs = bp' in let [_ |- fs_out] = [_ |- S1] in Ex_sim_barb_def [_ |- fs_com1 fs_out S2] (bs $[_ |- $S] [_ |- _])
+      | [_ |- fs_com2 S1 S2] => impossible [_ |- S1]
+      | [_ |- fs_close1 S1 S2] => impossible [_ |- S1]
+      | [_ |- fs_close2 S1 S2] => impossible [_ |- S1]
+      )
+;
+
+% The relation obtained by composing it with a substitution, a replication and another parallel process is also included in barbed similarity
+rec barbpre'_rep: (g:ctx) (h:ctx) {$S :$[h |- g]} {R : [h |- proc]} BarbPre' [g |- P] [g |- Q] -> BarbSimUpTo [h |- (p_rep P[$S]) p_par R] [h |- (p_rep Q[$S]) p_par R] =
+  fun $[_ |- $S] [_ |- R] bp' .BarbSimUpTo_barb_in b => let Barb_in_b s = b in (case s of
+      | [_ |- bs_par1 S] => let [_ |- bs_rep S'] = [_ |- S] in let Ex_subst_step_in_def [_ |- S''] = strength_subst_in [_ |- _] $[_ |- $S] [_ |- S'] in let Barb_in_b [_ |- S2] = (barbpre'_implies_barbsim bp') .BarbSim_barb_in (Barb_in_b [_ |- S'']) in Barb_in_b [_ |- bs_par1 (bs_rep S2[$S])]
+      | [_ |- bs_par2 S] => Barb_in_b [_ |- bs_par2 S]
+    )
+    | $[_ |- $S] [_ |- R] bp' .BarbSimUpTo_barb_out b => (case b of
+      | Barb_out_b s => (case s of
+        | [_ |- bs_par1 S] => let [_ |- bs_rep S'] = [_ |- S] in let Ex_subst_step_out_b_def [_ |- S''] = strength_subst_out_b [_ |- _] $[_ |- $S] [_ |- S'] in let Barb_out_b [_ |- S2] = (barbpre'_implies_barbsim bp') .BarbSim_barb_out (Barb_out_b [_ |- S'']) in Barb_out_b [_ |- bs_par1 (bs_rep S2[$S])]
+        | [_ |- bs_par2 S] => Barb_out_b [_ |- bs_par2 S]
+      )
+      | Barb_out_f s => (case s of
+        | [_ |- fs_par1 S] => let [_ |- fs_rep S'] = [_ |- S] in let Ex_subst_step_out_f_def [_ |- S''] = strength_subst_out_f [_ |- _] $[_ |- $S] [_ |- S'] in let Barb_out_f [_ |- S2] = (barbpre'_implies_barbsim bp') .BarbSim_barb_out (Barb_out_f [_ |- S'']) in Barb_out_f [_ |- fs_par1 (fs_rep S2[$S])]
+        | [_ |- fs_par2 S] => Barb_out_f [_ |- fs_par2 S]
+      )
+    )
+    | $[_ |- $S] [_ |- R] bp' .BarbSimUpTo_f_tau s => let BC' bs = bp' in let Ex_sim_barb_def s1 bs1 = (structcong_implies_barbsim_left Par_comm) .BarbSim_tau s in let Ex_par_rep_def [_ |- S2] c1 = par_rep s1 in let Ex_sim_barb_def s3 bs2 = (barb_sim_trans (barb_sim_trans (barb_sim_trans (barb_sim_trans (barb_sim_trans (barb_sim_trans (barb_sim_trans (barb_sim_trans (barb_sim_trans (barb_sim_trans (barb_sim_trans (barb_sim_trans (barb_sim_trans (barb_sim_trans (barb_sim_trans (barb_sim_trans
+    (structcong_implies_barbsim_left (C_ctx Par_comm (pp1M pidM)))
+    (structcong_implies_barbsim_right (C_ctx Par_assoc (pp1M pidM)))
+    )
+    (structcong_implies_barbsim_right Par_assoc)
+    )
+    (bs $[_ |- $S] [_ |- (_ p_par R) p_par (p_rep _)])
+    )
+    (structcong_implies_barbsim_left Par_assoc)
+    )
+    (structcong_implies_barbsim_left (C_ctx Par_assoc (pp1M pidM)))
+    )
+    (structcong_implies_barbsim_left (C_ctx Par_comm (pp1M (pp1M pidM))))
+    )
+    (structcong_implies_barbsim_right (C_ctx Par_assoc (pp1M pidM)))
+    )
+    (structcong_implies_barbsim_right Par_assoc)
+    )
+    (structcong_implies_barbsim_left (C_ctx Par_comm (pp2M (pp1M pidM))))
+    )
+    (structcong_implies_barbsim_right (C_ctx Par_assoc (pp2M pidM)))
+    )
+    (structcong_implies_barbsim_right (C_ctx Rep_unfold (pp2M (pp2M pidM))))
+    )
+    (bs $[_ |- $S] [_ |- R p_par (p_rep _)])
+    )
+    (structcong_implies_barbsim_left Par_comm)
+    )
+    (structcong_implies_barbsim_right Par_assoc)
+    )
+    (structcong_implies_barbsim_left (C_ctx Par_comm (pp2M pidM)))
+    )
+    (structcong_implies_barbsim_right (C_ctx Rep_unfold (pp2M pidM)))
+    ) .BarbSim_tau [_ |- fs_par1 S2] in let Ex_sim_barb_def s4 bs3 = (structcong_implies_barbsim_left Par_comm) .BarbSim_tau s3 in Ex_sim_barb_up_to_def s4 
+    (barb_sim_trans (barb_sim_trans bs1 (structcong_implies_barbsim_left c1)) (structcong_implies_barbsim_left Par_comm))
+    (barbpre'_rep $[_ |- $S] [_ |- _] bp')
+    (barb_sim_trans (barb_sim_trans (structcong_implies_barbsim_left Par_comm) bs2) bs3)
+;
+
+% It is a barbed precongruence
+rec barbpre'_is_precong: (g:ctx) (g':ctx) BarbPre' [g' |- P] [g' |- Q] -> pctxM [g' |- P] [g |- CP] [g' |- Q] [g |- CQ] -> BarbPre' [g |- CP] [g |- CQ] =
+  fn bp' => fn c => (case c of
+    | pidM => let BC' bs = bp' in bp'
+    | pinM c' => let ih = (barbpre'_is_precong bp' c') in BC' (mlam $S => mlam R => barbpre'_in $[_ |- $S[..]] ih)
+    | poutM c' => BC' (mlam $S => mlam R => barbpre'_out $[_ |- $S] (barbpre'_is_precong bp' c'))
+    | pp1M c' => let BC' bs = barbpre'_is_precong bp' c' in BC' (mlam $S => mlam R => barb_sim_trans (barb_sim_trans (structcong_implies_barbsim_right Par_assoc) (bs $[_ |- $S] [_ |- _ p_par R])) (structcong_implies_barbsim_left Par_assoc))
+    | pp2M c' => let BC' bs = barbpre'_is_precong bp' c' in BC' (mlam $S => mlam R => barb_sim_trans 
+      (barb_sim_trans 
+        (barb_sim_trans 
+          (barb_sim_trans 
+            (structcong_implies_barbsim_left (C_ctx Par_comm (pp1M pidM))) 
+            (structcong_implies_barbsim_right Par_assoc)
+            ) 
+            (bs $[_ |- $S] [_ |- _ p_par R])
+          ) 
+          (structcong_implies_barbsim_left Par_assoc)
+        ) 
+        (structcong_implies_barbsim_left (C_ctx Par_comm (pp1M pidM)))
+      )
+    | presM c' => let BC' bs = barbpre'_is_precong bp' c' in BC' (mlam $S => mlam R => (barb_sim_trans (barb_sim_trans (structcong_implies_barbsim_left (Sc_ext_par [_ |- _])) (res_barb_sim (bs $[_,x:names |- $S[..],x] [_,x:names |- R[..]]))) (structcong_implies_barbsim_right (Sc_ext_par [_ |- _]))))
+    | prepM c' => BC' (mlam $S => mlam R =>(barbsimupto_implies_barbsim (barbpre'_rep $[_ |- $S] [_ |- R] (barbpre'_is_precong bp' c'))))
+  )
+;
+
+% It is included in the largest precongruence included in barbed similarity
+rec barbpre'_implies_largprecong: (g:ctx) BarbPre' [g |- P] [g |- Q] -> LargPreCong [g |- P] [g |- Q] =
+  fun bp' .LP_BarbSim => barbpre'_implies_barbsim bp'
+    | bp' .LP_PreCong c => barbpre'_implies_largprecong (barbpre'_is_precong bp' c)
+;
+
+% It is included in barbed precongruence
+rec context_lemma: (g:ctx) BarbPre' [g |- P] [g |- Q] -> BarbPre [g |- P] [g |- Q] =
+  fn bp' => largprecong_implies_barbpre (barbpre'_implies_largprecong bp')
+;

@@ -1,0 +1,120 @@
+--coverage
+
+%%% Equivalence between different definitions of barbs (structural and by lts) %%%
+
+% Auxiliary lemma: if x does not occur in P, then nu x P is structurally equivalent to P
+rec res_new: (g:ctx) [g |- (p_res \x. P[..]) cong P] =
+  [_ |- c_sym (c_trans (c_trans (c_trans (c_trans (c_trans 
+  (c_sym par_unit)
+  par_comm)
+  (c_par (c_sym sc_ext_zero)))
+  sc_ext_par)
+  (c_res \x. par_comm))
+  (c_res \x. par_unit))]
+;
+
+% The structural definition implies the lts one (input case)
+rec barb_in_struct_to_Barb_in: (g:ctx) [g |- barb_in_struct P X] -> Barb_in [g |- P] [g |- X] = 
+  fn b => let [g |- barb_in_struct_def C R] = b in case [g |- R] of
+  | [g |- biw_zero] => let b' = structcong_implies_barbsim_right (congtoCongM [g |- C]) in b' .BarbSim_barb_in (Barb_in_b [g |- bs_par1 bs_in])
+  | [g |- biw_add \x. R'] => let b' = barb_in_struct_to_Barb_in [g,x:names |- barb_in_struct_def c_ref R'] in let Barb_in_b [g,x:names |- S] = b' in let b'' = structcong_implies_barbsim_right (congtoCongM [g |- C]) in b'' .BarbSim_barb_in (Barb_in_b [g |- bs_res \x. S])
+;
+
+% If P has an input barb X according to the structural definition and x is different from X, then also (nu x (P | Q)) has an input barb X according to the same definition
+rec barb_in_rew_par: (g:ctx) {Q : [g,x:names |- proc]} [g,x:names |- barb_in_struct P X[..]] -> [g |- barb_in_struct (p_res (\x. (P p_par Q))) X] =
+  mlam Q => fn b => let [g,x:names |- barb_in_struct_def C R] = b in case [g,x:names |- R] of
+  | [g,x:names |- biw_zero] => [g |- barb_in_struct_def (c_trans (c_res \x. (c_par C)) (c_res \x. (c_sym par_assoc))) (biw_add \x. biw_zero)]
+  | [g,x:names |- biw_add \y. R'] => let [g,x:names |- barb_in_struct_def C' R''] = barb_in_rew_par [g,x:names,y:names |- Q[..,x]] [g,x:names,y:names |- barb_in_struct_def c_ref R'] in [g |- barb_in_struct_def (c_trans (c_trans 
+    (c_res \x. (c_par C)) 
+    (c_res \x. sc_ext_par)) 
+    (c_res \x. C'))
+    (biw_add \x. R'')]
+;
+
+% The structural definition is preserved by structural congruence (input case)
+rec barb_in_cong: (g:ctx) [g |- barb_in_struct P X] -> [g |- P cong Q] -> [g |- barb_in_struct Q X] = 
+  fn b => fn c => let [g |- C] = c in let [g |- barb_in_struct_def C' R] = b in [g |- barb_in_struct_def (c_trans (c_sym C) C') R]
+;
+
+% The lts definition implies the structural one (input case)
+rec Barb_in_to_barb_in_struct: (g:ctx) {P : [g |- proc]} Barb_in [g |- P] [g |- X] -> [g |- barb_in_struct P X] = 
+  / total P (Barb_in_to_barb_in_struct _ P) /
+  mlam P => fn b => let Barb_in_b s = b in case [_ |- P] of
+  | [g |- p_zero] => impossible s
+  | [g |- p_in X \x. P'] => let [g |- bs_in] = s in [g |- barb_in_struct_def (c_sym (par_unit)) biw_zero]
+  | [g |- p_out X Y P'] => impossible s
+  | [g |- P1 p_par P2] => (case s of
+    | [g |- bs_par1 S] => let [g |- barb_in_struct_def C R] = Barb_in_to_barb_in_struct [g |- P1] (Barb_in_b [g |- S]) in let b' = barb_in_rew_par [g,x:names |- P2[..]] [g,x:names |- barb_in_struct_def C[..] R[..]] in barb_in_cong b' res_new
+    | [g |- bs_par2 S] => let [g |- barb_in_struct_def C R] = Barb_in_to_barb_in_struct [g |- P2] (Barb_in_b [g |- S]) in let b' = barb_in_rew_par [g,x:names |- P1[..]] [g,x:names |- barb_in_struct_def C[..] R[..]] in let b'' = barb_in_cong b' [g |- c_res \x. par_comm] in barb_in_cong b'' res_new
+  )
+  | [g |- p_res \x. P'] => let [g |- bs_res \x. S] = s in let [g,x:names |- barb_in_struct_def C R] = Barb_in_to_barb_in_struct [g,x:names |- P'] (Barb_in_b [g,x:names |- S]) in [g |- barb_in_struct_def (c_res \x. C) (biw_add \x. R)]
+  | [g |- p_rep P'] => let [g |- bs_rep S] = s in let [g |- barb_in_struct_def C R] = Barb_in_to_barb_in_struct [g |- P'] (Barb_in_b [g |- S]) in (case [g |- R] of
+    | [g |- biw_zero] => [g |- barb_in_struct_def (c_trans (c_trans rep_unfold (c_par C)) (c_sym par_assoc)) biw_zero]
+    | [g |- biw_add \x. R'] =>  barb_in_cong (barb_in_rew_par [g,x:names |- P[..]] [g,x:names |- barb_in_struct_def c_ref R']) [g |- c_sym (c_trans (c_trans rep_unfold (c_par C)) sc_ext_par)]
+  )
+;
+
+% The structural definition implies the lts one (output case)
+rec barb_out_struct_to_Barb_out: (g:ctx) [g |- barb_out_struct P X] -> Barb_out [g |- P] [g |- X] = 
+  fn b => let [g |- barb_out_struct_def C R] = b in case [g |- R] of
+  | [g |- bow_zero] => let b' = structcong_implies_barbsim_right (congtoCongM [g |- C]) in b' .BarbSim_barb_out (Barb_out_f [g |- fs_par1 fs_out])
+  | [g |- bow_add \x. R'] => let b' = barb_out_struct_to_Barb_out [g,x:names |- barb_out_struct_def c_ref R'] in (case b' of
+    | Barb_out_f [g,x:names |- S] => let b'' = structcong_implies_barbsim_right (congtoCongM [g |- C]) in let ro = res_or_open [_ |- _] [_,x:names |- _] [_,x:names |- S] in (case ro of
+      | DiffName [_ |- S'] => b'' .BarbSim_barb_out (Barb_out_f [g |- fs_res \x. S])
+      | SameName [_ |- S'] => b'' .BarbSim_barb_out (Barb_out_b [g |- bs_open \x. S])
+    )
+    | Barb_out_b [g,x:names |- S] => let b'' = structcong_implies_barbsim_right (congtoCongM [g |- C]) in b'' .BarbSim_barb_out (Barb_out_b [g |- bs_res \x. S])
+  )
+;
+
+% If P has an output barb X according to the structural definition and x is different from X, then also (nu x (P | Q)) has an output barb X according to the same definition
+rec barb_out_rew_par: (g:ctx) {Q : [g,x:names |- proc]} [g,x:names |- barb_out_struct P X[..]] -> [g |- barb_out_struct (p_res (\x. (P p_par Q))) X] =
+  mlam Q => fn b => let [g,x:names |- barb_out_struct_def C R] = b in case [g,x:names |- R] of
+  | [g,x:names |- bow_zero] => [g |- barb_out_struct_def (c_trans (c_res \x. (c_par C)) (c_res \x. (c_sym par_assoc))) (bow_add \x. bow_zero)]
+  | [g,x:names |- bow_add \y. R'] => let [g,x:names |- barb_out_struct_def C' R''] = barb_out_rew_par [g,x:names,y:names |- Q[..,x]] [g,x:names,y:names |- barb_out_struct_def c_ref R'] in [g |- barb_out_struct_def (c_trans (c_trans 
+    (c_res \x. (c_par C)) 
+    (c_res \x. sc_ext_par)) 
+    (c_res \x. C'))
+    (bow_add \x. R'')]
+;
+
+% The structural definition is preserved by structural congruence (output case)
+rec barb_out_cong: (g:ctx) [g |- barb_out_struct P X] -> [g |- P cong Q] -> [g |- barb_out_struct Q X] = 
+  fn b => fn c => let [g |- C] = c in let [g |- barb_out_struct_def C' R] = b in [g |- barb_out_struct_def (c_trans (c_sym C) C') R]
+;
+
+% The lts definition implies the structural one (output case)
+rec Barb_out_to_barb_out_struct: (g:ctx) {P : [g |- proc]} Barb_out [g |- P] [g |- X] -> [g |- barb_out_struct P X] = 
+  mlam P => fn b => case b of
+  | Barb_out_f s => (case [_ |- P] of
+    | [g |- p_zero] => impossible s
+    | [g |- p_in X \x. P'] => impossible s
+    | [g |- p_out X Y P'] => let [g |- fs_out] = s in [g |- barb_out_struct_def (c_sym (par_unit)) bow_zero]
+    | [g |- P1 p_par P2] => (case s of
+      | [g |- fs_par1 S] => let [g |- barb_out_struct_def C R] = Barb_out_to_barb_out_struct [g |- P1] (Barb_out_f [g |- S]) in let b' = barb_out_rew_par [g,x:names |- P2[..]] [g,x:names |- barb_out_struct_def C[..] R[..]] in barb_out_cong b' res_new
+      | [g |- fs_par2 S] => let [g |- barb_out_struct_def C R] = Barb_out_to_barb_out_struct [g |- P2] (Barb_out_f [g |- S]) in let b' = barb_out_rew_par [g,x:names |- P1[..]] [g,x:names |- barb_out_struct_def C[..] R[..]] in let b'' = barb_out_cong b' [g |- c_res \x. par_comm] in barb_out_cong b'' res_new
+    )
+    | [g |- p_res \x. P'] => let [g |- fs_res \x. S] = s in let [g,x:names |- barb_out_struct_def C R] = Barb_out_to_barb_out_struct [g,x:names |- P'] (Barb_out_f [g,x:names |- S]) in [g |- barb_out_struct_def (c_res \x. C) (bow_add \x. R)]
+    | [g |- p_rep P'] => let [g |- fs_rep S] = s in let [g |- barb_out_struct_def C R] = Barb_out_to_barb_out_struct [g |- P'] (Barb_out_f [g |- S]) in (case [g |- R] of
+      | [g |- bow_zero] => [g |- barb_out_struct_def (c_trans (c_trans rep_unfold (c_par C)) (c_sym par_assoc)) bow_zero]
+      | [g |- bow_add \x. R'] =>  barb_out_cong (barb_out_rew_par [g,x:names |- P[..]] [g,x:names |- barb_out_struct_def c_ref R']) [g |- c_sym (c_trans (c_trans rep_unfold (c_par C)) sc_ext_par)]
+    )
+    )
+  | Barb_out_b s => (case [_ |- P] of
+    | [g |- p_zero] => impossible s
+    | [g |- p_in X \x. P'] => impossible s
+    | [g |- p_out X Y P'] => impossible s
+    | [g |- P1 p_par P2] => (case s of
+      | [g |- bs_par1 S] => let [g |- barb_out_struct_def C R] = Barb_out_to_barb_out_struct [g |- P1] (Barb_out_b [g |- S]) in let b' = barb_out_rew_par [g,x:names |- P2[..]] [g,x:names |- barb_out_struct_def C[..] R[..]] in barb_out_cong b' res_new
+      | [g |- bs_par2 S] => let [g |- barb_out_struct_def C R] = Barb_out_to_barb_out_struct [g |- P2] (Barb_out_b [g |- S]) in let b' = barb_out_rew_par [g,x:names |- P1[..]] [g,x:names |- barb_out_struct_def C[..] R[..]] in let b'' = barb_out_cong b' [g |- c_res \x. par_comm] in barb_out_cong b'' res_new
+    )
+    | [g |- p_res \x. P'] => (case s of
+      | [g |- bs_res \x. S] => let [g,x:names |- barb_out_struct_def C R] = Barb_out_to_barb_out_struct [g,x:names |- P'] (Barb_out_b [g,x:names |- S]) in [g |- barb_out_struct_def (c_res \x. C) (bow_add \x. R)]
+      | [g |- bs_open \x. S] => let [g,x:names |- barb_out_struct_def C R] = Barb_out_to_barb_out_struct [g,x:names |- P'] (Barb_out_f [g,x:names |- S]) in [g |- barb_out_struct_def (c_res \x. C) (bow_add \x. R)]
+      )
+    | [g |- p_rep P'] => let [g |- bs_rep S] = s in let [g |- barb_out_struct_def C R] = Barb_out_to_barb_out_struct [g |- P'] (Barb_out_b [g |- S]) in (case [g |- R] of
+      | [g |- bow_zero] => [g |- barb_out_struct_def (c_trans (c_trans rep_unfold (c_par C)) (c_sym par_assoc)) bow_zero]
+      | [g |- bow_add \x. R'] =>  barb_out_cong (barb_out_rew_par [g,x:names |- P[..]] [g,x:names |- barb_out_struct_def c_ref R']) [g |- c_sym (c_trans (c_trans rep_unfold (c_par C)) sc_ext_par)]
+    )
+    )
+;

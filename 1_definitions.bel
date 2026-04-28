@@ -1,0 +1,235 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% Definitions %%%
+
+% Set of Channel Names
+LF names: type =
+;
+
+% Processes
+% In order to encode input and restriction processes, which both bind names, we exploit higher order abstract syntax
+% and use higher-order functions from names to proc.
+% In this way we don't need to give an explicit name to bound names and deal with alpha-renaming or substitution.
+LF proc: type =
+  | p_zero: proc                                % 0
+  | p_in: names → (names → proc) → proc         % x(y).P(y), where x(y) is an input of the name y through channel x
+  | p_out: names → names → proc → proc          % x(u).P, where x(u) is an output of the name u through channel x
+  | p_par: proc → proc → proc                   % P|Q, where P and Q are processes
+  | p_res: (names → proc) → proc                % (nu x) P, where x is a name and P is a process
+  | p_rep: proc → proc                          % !P, where P is a process
+;
+--infix p_par 11 left.
+
+% Beluga context schema for Channel Names
+schema ctx = names;
+
+% Equality of processes
+LF eqp: proc → proc → type =
+  | refp: eqp X X
+;
+
+% Equality of names
+LF eqn: names → names → type =
+  | refl: eqn N N
+;
+
+% Contexts
+% Similar to the formalization of contexts in "Barendregt’s Theory of the \lambda-Calculus, Refreshed and Formalized" [Lancelot et al. 2025]
+% Predicate for contexts for a couple of terms
+% pctxM [g' |- P] [g |- CP] [g' |- Q] [g |- CQ] holds if there is a context C such that C[P] = CP and C[Q] = CQ
+inductive pctxM : (g: ctx) (g': ctx) [g' ⊢ proc ] →  [g ⊢ proc ] → [g' ⊢ proc ] →  [g ⊢ proc ] → ctype =
+  | pidM: pctxM [g ⊢ P ] [g ⊢ P ] [g ⊢ Q ] [g ⊢ Q ]
+  | pinM: pctxM [g' ⊢ P ] [g, x:names ⊢ CP ] [g' ⊢ Q ] [g, x:names ⊢ CQ ] → pctxM [g' ⊢ P ] [g ⊢ p_in X (\x. CP) ] [g' ⊢ Q ] [g ⊢ p_in X (\x. CQ) ]
+  | poutM: pctxM [g' ⊢ P ] [g ⊢ CP ] [g' ⊢ Q ] [g ⊢ CQ ] → pctxM [g' ⊢ P ] [g ⊢ p_out X Y CP ] [g' ⊢ Q ] [g ⊢ p_out X Y CQ ]
+  | pp1M: pctxM [g' ⊢ P ] [g ⊢ CP] [g' ⊢ Q ] [g ⊢ CQ ] → pctxM [g' ⊢ P ] [g ⊢ CP p_par R] [g' ⊢ Q ] [g ⊢ CQ p_par R]
+  | pp2M: pctxM [g' ⊢ P ] [g ⊢ CP] [g' ⊢ Q ] [g ⊢ CQ ] → pctxM [g' ⊢ P ] [g ⊢ R p_par CP] [g' ⊢ Q ] [g ⊢ R p_par CQ]
+  | presM: pctxM [g' ⊢ P ] [g, x : names ⊢ CP] [g' ⊢ Q ] [g, x : names ⊢ CQ] → pctxM [g' ⊢ P] [g ⊢ (p_res \x. CP)] [g' ⊢ Q ] [g ⊢ (p_res \x. CQ)]
+  | prepM: pctxM [g' ⊢ P ] [g ⊢ CP] [g' ⊢ Q ] [g ⊢ CQ] → pctxM [g' ⊢ P] [g ⊢ p_rep CP] [g' ⊢ Q] [g ⊢ p_rep CQ]
+;
+
+% Structural congruence (defined using compatibility laws)
+LF cong: proc → proc → type =
+% Abelian Monoid Laws for Parallel Composition
+  | par_assoc: cong (P p_par (Q p_par R)) ((P p_par Q) p_par R)
+  | par_unit: cong (P p_par p_zero) P
+  | par_comm: cong (P p_par Q) (Q p_par P)
+% Scope Extension Laws
+  | sc_ext_zero: cong (p_res \x.p_zero) p_zero
+  | sc_ext_par: cong ((p_res P) p_par Q) (p_res \x.((P x) p_par Q))
+  | sc_ext_res: cong (p_res \x.(p_res \y.(P x y))) (p_res \y.(p_res \x.(P x y)))
+% Replication unfolding
+  | rep_unfold: cong (p_rep P) (P p_par (p_rep P))
+% Compatibility Laws
+  | c_in: ({y:names} cong (P y) (Q y)) → cong (p_in X P) (p_in X Q)
+  | c_out: cong P Q → cong (p_out X Y P) (p_out X Y Q)
+  | c_par: cong P P' → cong (P p_par Q) (P' p_par Q)
+  | c_res: ({x:names} cong (P x) (Q x)) → cong (p_res P) (p_res Q)
+  | c_rep: cong P Q -> cong (p_rep P) (p_rep Q)
+% Equivalence Relation Laws
+  | c_ref: cong P P
+  | c_sym: cong P Q → cong Q P
+  | c_trans: cong P Q → cong Q R → cong P R
+;
+--infix cong 11 left.
+
+% Structural congruence (defined using contexts)
+inductive CongM: (g:ctx) [g |- proc] -> [g |- proc] → ctype =
+% Abelian Monoid Laws for Parallel Composition
+  | Par_assoc: CongM [g |- (P p_par (Q p_par R))] [g |- ((P p_par Q) p_par R)]
+  | Par_unit: CongM [g |- (P p_par p_zero)] [g |- P]
+  | Par_comm: CongM [g |- (P p_par Q)] [g |- (Q p_par P)]
+% Scope Extension Laws
+  | Sc_ext_zero: CongM [g |- (p_res \x.p_zero)] [g |- p_zero]
+  | Sc_ext_par: {P : [g,x:names |- proc]} CongM [g |- ((p_res \x. P) p_par Q)] [g |- (p_res \x.(P p_par Q[..]))]
+  | Sc_ext_res: {P : [g,x:names,y:names |- proc]} CongM [g |- (p_res \x.(p_res \y.P[..,x,y]))] [g |- (p_res \y.(p_res \x.P[..,x,y]))]
+% Replication unfolding
+  | Rep_unfold: CongM [g |- (p_rep P)] [g |- (P p_par (p_rep P))]
+% Contextual closure
+  | C_ctx: CongM [g' |- P] [g' |- Q] -> pctxM [g' ⊢ P ] [g ⊢ CP] [g' ⊢ Q ] [g ⊢ CQ ] -> CongM [g |- CP] [g |- CQ]
+% Equivalence Relation Laws
+  | C_ref: CongM [g |- P] [g |- P]
+  | C_sym: CongM [g |- P] [g |- Q] → CongM [g |- Q] [g |- P]
+  | C_trans: CongM [g |- P] [g |- Q] → CongM [g |- Q] [g |- R] → CongM [g |- P] [g |- R]
+;
+--infix CongM 11 left.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% LTS Semantics %%%
+% We follow "Pi-Calculus in (Co)Inductive Type Theory" [Honsell et al. 2001] for the encoding of late LTS semantics, except for the replication rules, which are from "The Pi-Calculus: A Theory of Mobile Processes" [Sangiorgi and Walker 2001].
+% We define two different types for free/bound actions, and two different relations for transitions via free/bound actions.
+% The result of a free transition is a process, while the result of a bound transition is a function from names to processes:
+% instead of stating the bound name involved in the transition explicitly, that name is the argument of the aforementioned function.
+
+% Free Actions
+LF f_act: type =
+  | f_tau: f_act
+  | f_out: names → names → f_act
+;
+
+% Bound Actions
+LF b_act: type =
+  | b_in: names → b_act
+  | b_out: names → b_act
+;
+
+% Equality of free and bound actions
+LF eqf: f_act → f_act → type =
+  | reff: eqf A A
+;
+
+LF eqb: b_act → b_act → type =
+  | refb: eqb A A
+;
+
+% Transition Relation
+LF fstep: proc → f_act → proc → type =
+  | fs_out: fstep (p_out X Y P) (f_out X Y) P
+  | fs_par1: fstep P A P' → fstep (P p_par Q) A (P' p_par Q)
+  | fs_par2: fstep Q A Q' → fstep (P p_par Q) A (P p_par Q')
+  | fs_com1: fstep P (f_out X Y) P' → bstep Q (b_in X) Q'
+    → fstep (P p_par Q) f_tau (P' p_par (Q' Y))
+  | fs_com2: bstep P (b_in X) P' → fstep Q (f_out X Y) Q'
+    → fstep (P p_par Q) f_tau ((P' Y) p_par Q')
+  | fs_res: ({z:names} fstep (P z) A (P' z))
+    → fstep (p_res P) A (p_res P')
+  | fs_close1: bstep P (b_out X) P' → bstep Q (b_in X) Q'
+    → fstep (P p_par Q) f_tau (p_res \z.((P' z) p_par (Q' z)))
+  | fs_close2: bstep P (b_in X) P' → bstep Q (b_out X) Q'
+    → fstep (P p_par Q) f_tau (p_res \z.((P' z) p_par (Q' z)))
+  | fs_rep: fstep P A P' → fstep (p_rep P) A (P' p_par (p_rep P))
+  | fs_rep_com: fstep P (f_out X Y) P1 → bstep P (b_in X) P2
+    → fstep (p_rep P) f_tau ((P1 p_par (P2 Y)) p_par (p_rep P))
+  | fs_rep_close: bstep P (b_out X) P1 → bstep P (b_in X) P2
+    → fstep (p_rep P) f_tau ((p_res \z.((P1 z) p_par (P2 z))) p_par (p_rep P))
+
+and bstep: proc → b_act → (names → proc) → type =
+  | bs_in: bstep (p_in X P) (b_in X) P
+  | bs_par1: bstep P A P' → bstep (P p_par Q) A \x.((P' x) p_par Q)
+  | bs_par2: bstep Q A Q' → bstep (P p_par Q) A \x.(P p_par (Q' x))
+  | bs_res: ({z:names} bstep (P z) A (P' z))
+    → bstep (p_res P) A \x.(p_res \z.(P' z x))
+  | bs_open: ({z:names} fstep (P z) (f_out X z) (P' z))
+    → bstep (p_res P) (b_out X) P'
+  | bs_rep: bstep P A P' → bstep (p_rep P) A \x.((P' x) p_par (p_rep P))
+;
+
+
+%%% Behavioural equivalences %%%
+
+% Barbs (defined using lts)
+inductive Barb_in : (g:ctx) [g |- proc] -> [g |- names] -> ctype =
+  | Barb_in_b : [g |- bstep P (b_in X) (\x. P')] -> Barb_in [g |- P] [g |- X]
+;
+
+inductive Barb_out : (g:ctx) [g |- proc] -> [g |- names] -> ctype =
+  | Barb_out_f : [g |- fstep P (f_out X Y) P'] -> Barb_out [g |- P] [g |- X]
+  | Barb_out_b : [g |- bstep P (b_out X) (\x. P')] -> Barb_out [g |- P] [g |- X]
+;
+
+% Barbs (defined structurally using rewritings)
+LF barb_in_rew : proc -> names -> type =
+  | biw_zero : barb_in_rew ((p_in X Q) p_par R) X
+  | biw_add: ({x : names} barb_in_rew (P x) X) -> barb_in_rew (p_res P) X
+;
+
+LF barb_out_rew : proc -> names -> type =
+  | bow_zero : barb_out_rew ((p_out X Y Q) p_par R) X
+  | bow_add: ({x : names} barb_out_rew (P x) X) -> barb_out_rew (p_res P) X
+;
+
+LF barb_in_struct : proc -> names -> type =
+  | barb_in_struct_def: P cong P' -> barb_in_rew P' X -> barb_in_struct P X
+;
+
+LF barb_out_struct : proc -> names -> type =
+  | barb_out_struct_def: P cong P' -> barb_out_rew P' X -> barb_out_struct P X
+;
+
+% Barbed similarity
+coinductive BarbSim : (g:ctx) [g |- proc] -> [g |- proc] -> ctype =
+  | (BarbSim_barb_in : BarbSim [g |- P] [g |- Q])
+              :: Barb_in [g |- P] [g |- X] -> Barb_in [g |- Q] [g |- X]
+  | (BarbSim_barb_out : BarbSim [g |- P] [g |- Q])
+              :: Barb_out [g |- P] [g |- X] -> Barb_out [g |- Q] [g |- X]
+  | (BarbSim_tau : BarbSim [g |- P] [g |- Q])
+              :: [g |- fstep P f_tau P'] -> Ex_sim_barb [g |- P] [g |- Q] [g |- P']
+
+and inductive Ex_sim_barb : (g:ctx) [g |- proc] -> [g |- proc] -> [g |- proc] -> ctype =
+  | Ex_sim_barb_def : [g |- fstep Q f_tau Q'] -> BarbSim [g |- P'] [g |- Q'] 
+                 -> Ex_sim_barb [g |- P] [g |- Q] [g |- P']
+;
+
+% Barbed similarity up to
+coinductive BarbSimUpTo : (g:ctx) [g |- proc] -> [g |- proc] -> ctype =
+  | (BarbSimUpTo_barb_in : BarbSimUpTo [g |- P] [g |- Q])
+              :: Barb_in [g |- P] [g |- X] -> Barb_in [g |- Q] [g |- X]
+  | (BarbSimUpTo_barb_out : BarbSimUpTo [g |- P] [g |- Q])
+              :: Barb_out [g |- P] [g |- X] -> Barb_out [g |- Q] [g |- X]
+  | (BarbSimUpTo_f_tau : BarbSimUpTo [g |- S1] [g |- S2])
+              :: [g |- fstep S1 f_tau S1'] -> Ex_sim_barb_up_to [g |- S1] [g |- S2] [g |- S1']
+
+and inductive Ex_sim_barb_up_to : (g:ctx) [g |- proc] -> [g |- proc] -> [g |- proc] -> ctype =
+  | Ex_sim_barb_up_to_def : [g |- fstep Q f_tau Q'] -> BarbSim [g |- P'] [g |- P''] -> BarbSimUpTo [g |- P''] [g |- Q''] -> BarbSim [g |- Q''] [g |- Q'] 
+                 -> Ex_sim_barb_up_to [g |- P] [g |- Q] [g |- P']
+;
+
+% Barbed precongruence
+inductive BarbPre: (g':ctx) [g' |- proc] -> [g' |- proc] -> ctype =
+  | BC:  (g':ctx) {P:[g' |- proc]} {Q:[g' |- proc]} 
+    ((g : ctx) {CP:[g |- proc]} {CQ:[g |- proc]} pctxM [g' ⊢ P] [g ⊢ CP] [g' ⊢ Q] [g ⊢ CQ] -> BarbSim [g |- CP] [g |- CQ]) 
+    -> BarbPre [g' |- P] [g' |- Q]
+;
+
+% Context lemma characterization of barbed precongruence
+inductive BarbPre': (g:ctx) [g |- proc] -> [g |- proc] -> ctype =
+  | BC' : ((h:ctx) {$S : $[h |- g]} {R : [h |- proc]} -> BarbSim [h |- P[$S] p_par R] [h |- Q[$S] p_par R]) -> BarbPre' [g |- P] [g |- Q]
+;
+
+% Largest precongruence included in barbed similarity
+coinductive LargPreCong: (g':ctx) [g' |- proc] -> [g' |- proc] -> ctype =
+  | (LP_BarbSim : LargPreCong [g' |- P] [g' |- Q])
+              :: BarbSim [g' |- P] [g' |- Q]
+  | (LP_PreCong : LargPreCong [g' |- P] [g' |- Q])
+              :: pctxM [g' ⊢ P] [g ⊢ CP] [g' ⊢ Q] [g ⊢ CQ] -> LargPreCong [g ⊢ CP] [g ⊢ CQ]
+;

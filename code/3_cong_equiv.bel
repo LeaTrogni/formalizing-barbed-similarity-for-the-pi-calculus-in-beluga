@@ -1,8 +1,8 @@
-%%% Equivalence between two different implementation of structural congruence, using compatibility laws (cong) or contextual closure (CongM) %%%
+%%% Equivalence between two different implementation of structural congruence, using compatibility laws (cong) or contextual closure (Cong) %%%
 
-% cong implies CongM
-rec congtoCongM: (g:ctx) [g |- P cong Q] -> [g |- P] CongM [g |- Q] =
-/ total c (congtoCongM _ _ _ c) /
+% cong implies Cong
+rec congtoCong: (g:ctx) [g |- P cong Q] -> [g |- P] Cong [g |- Q] =
+/ total c (congtoCong _ _ _ c) /
 fn c => case c of
   | [g |- par_assoc] => Par_assoc
   | [g |- par_unit] => Par_unit
@@ -11,32 +11,32 @@ fn c => case c of
   | [g |- sc_ext_par] => Sc_ext_par [_ |- _]
   | [g |- sc_ext_res] => Sc_ext_res [_ |- _]
   | [g |- rep_unfold] => Rep_unfold
-  | [g |- c_in \a.C] => C_ctx (congtoCongM [_ |- C]) (pinM pidM)
-  | [g |- c_out C] => C_ctx (congtoCongM [g |- C]) (poutM pidM)
-  | [g |- c_par C] => C_ctx (congtoCongM [g |- C]) (pp1M pidM)
-  | [g |- c_res \a.C] => C_ctx (congtoCongM [_ |- C]) (presM pidM)
-  | [g |- c_rep C] => C_ctx (congtoCongM [g |- C]) (prepM pidM)
+  | [g |- c_in \a.C] => C_ctx (congtoCong [_ |- C]) (pinM pidM)
+  | [g |- c_out C] => C_ctx (congtoCong [g |- C]) (poutM pidM)
+  | [g |- c_par C] => C_ctx (congtoCong [g |- C]) (pp1M pidM)
+  | [g |- c_res \a.C] => C_ctx (congtoCong [_ |- C]) (presM pidM)
+  | [g |- c_rep C] => C_ctx (congtoCong [g |- C]) (prepM pidM)
   | [g |- c_ref] => C_ref
-  | [g |- c_sym C] => C_sym (congtoCongM [g |- C])
-  | [g |- c_trans C1 C2] => C_trans (congtoCongM [g |- C1]) (congtoCongM [g |- C2])
+  | [g |- c_sym C] => C_sym (congtoCong [g |- C])
+  | [g |- c_trans C1 C2] => C_trans (congtoCong [g |- C1]) (congtoCong [g |- C2])
 ;
 
 % Auxiliary lemma: if P cong Q, then for every context C C[P] cong C[Q}
-rec pctxMtocong: (g':ctx) (g:ctx) [g' |- P cong Q] -> pctxM [g' ⊢ P] [g ⊢ CP] [g' ⊢ Q] [g ⊢ CQ] -> [g |- CP cong CQ] =
-/ total p (pctxMtocong _ _ _ _ _ _ _ p) /
+rec PCtxtocong: (g':ctx) (g:ctx) [g' |- P cong Q] -> PCtx [g' ⊢ P] [g ⊢ CP] [g' ⊢ Q] [g ⊢ CQ] -> [g |- CP cong CQ] =
+/ total p (PCtxtocong _ _ _ _ _ _ _ p) /
 fn c,p => case p of
   | pidM => c
-  | pinM p' => let [g,x:names |- C] = pctxMtocong c p' in [g |- c_in \a.C]
-  | poutM p' => let [g |- C] = pctxMtocong c p' in [g |- c_out C]
-  | pp1M p' => let [g |- C] = pctxMtocong c p' in [g |- c_par C]
-  | pp2M p' => let [g |- C] = pctxMtocong c p' in [g |- c_trans par_comm (c_trans (c_par C) par_comm)]
-  | presM p' => let [g,x:names |- C] = pctxMtocong c p' in [g |- c_res \a.C]
-  | prepM p' => let [g |- C] = pctxMtocong c p' in [g |- c_rep C]
+  | pinM p' => let [g,x:names |- C] = PCtxtocong c p' in [g |- c_in \a.C]
+  | poutM p' => let [g |- C] = PCtxtocong c p' in [g |- c_out C]
+  | pp1M p' => let [g |- C] = PCtxtocong c p' in [g |- c_par C]
+  | pp2M p' => let [g |- C] = PCtxtocong c p' in [g |- c_trans par_comm (c_trans (c_par C) par_comm)]
+  | presM p' => let [g,x:names |- C] = PCtxtocong c p' in [g |- c_res \a.C]
+  | prepM p' => let [g |- C] = PCtxtocong c p' in [g |- c_rep C]
 ;
 
-% CongM implies cong
-rec CongMtocong: (g:ctx) [g |- P] CongM [g |- Q] -> [g |- P cong Q] =
-/ total c (CongMtocong _ _ _ c) /
+% Cong implies cong
+rec Congtocong: (g:ctx) [g |- P] Cong [g |- Q] -> [g |- P cong Q] =
+/ total c (Congtocong _ _ _ c) /
 fn c => case c of
   | Par_assoc => [_ |- par_assoc]
   | Par_unit => [_ |- par_unit]
@@ -45,13 +45,13 @@ fn c => case c of
   | Sc_ext_par [g,x:names |- P] => [g |- sc_ext_par]
   | Sc_ext_res [g,x:names,y:names |- P] => [g |- sc_ext_res]
   | Rep_unfold => [_ |- rep_unfold]
-  | C_ctx c' p => pctxMtocong (CongMtocong c') p
+  | C_ctx c' p => PCtxtocong (Congtocong c') p
   | C_ref => [_ |- c_ref]
-  | C_sym c' => let [g |- C] = CongMtocong c' in [g |- c_sym C]
-  | C_trans c1 c2 => let [g |- C1] = CongMtocong c1 in
-                     let [g |- C2] = CongMtocong c2 in [g |- c_trans C1 C2]
+  | C_sym c' => let [g |- C] = Congtocong c' in [g |- c_sym C]
+  | C_trans c1 c2 => let [g |- C1] = Congtocong c1 in
+                     let [g |- C2] = Congtocong c2 in [g |- c_trans C1 C2]
 ;
 
 % Some examples
 let D1:[|- (p_res \x.(p_res \y.(p_out x y p_zero))) cong (p_res \y.(p_res \x.(p_out x y p_zero)))] = [|- sc_ext_res];
-let D2:[|- (p_res \x.(p_res \y.(p_out x y p_zero)))] CongM [|- (p_res \y.(p_res \x.(p_out x y p_zero)))] = Sc_ext_res [x:names,y:names |- p_out x y p_zero];
+let D2:[|- (p_res \x.(p_res \y.(p_out x y p_zero)))] Cong [|- (p_res \y.(p_res \x.(p_out x y p_zero)))] = Sc_ext_res [x:names,y:names |- p_out x y p_zero];

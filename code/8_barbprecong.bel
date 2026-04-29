@@ -4,12 +4,12 @@
 rec barbpre_refl: (g:ctx) {P:[g' |- proc]} BarbPre [g' |- P] [g' |- P] =
 / total p (barbpre_refl p) /
   mlam P => BC [_ |- P] [_ |- P] (mlam CP => mlam CQ => fn d =>
-  let  [g |- refp] = pctxM_funct d in barb_sim_refl)
+  let  [g |- refp] = PCtx_funct d in barb_sim_refl)
 ;
 
 rec barbpre_trans : (g:ctx) {Q : [g |- proc]} BarbPre [g |- P] [g |- Q] -> BarbPre [g |- Q] [g |- R] -> BarbPre [g |- P] [g |- R] = 
   / total d2 (barbpre_trans _ _ _ _ _ d2) /
-  mlam Q => fn d1 => fn d2 => let BC [_ |- P] [_ |- Q] d1' = d1 in let BC [_ |- Q] [_ |- R] d2' = d2 in BC [_ |- P] [_ |- R] (mlam CP => mlam CR => fn c => let Ex_ctx_def c1 c2 = pctxM_trans [_ |- Q] c in barb_sim_trans (d1' [_ |- _] [_ |- _] c1) (d2' [_ |- _] [_ |- _] c2))
+  mlam Q => fn d1 => fn d2 => let BC [_ |- P] [_ |- Q] d1' = d1 in let BC [_ |- Q] [_ |- R] d2' = d2 in BC [_ |- P] [_ |- R] (mlam CP => mlam CR => fn c => let Ex_ctx_def c1 c2 = PCtx_trans [_ |- Q] c in barb_sim_trans (d1' [_ |- _] [_ |- _] c1) (d2' [_ |- _] [_ |- _] c2))
 ;
 
 % Barbed precongruence is included in barbed similarity
@@ -21,7 +21,7 @@ rec barbpre_implies_barbsim: (g:ctx) BarbPre [g |- P] [g |- Q] -> BarbSim [g |- 
 %%% Properties of the largest precongruence included in barbed similarity %%%
 
 % Structural congruence is included in the largest precongruence included in barbed similarity
-rec structcong_implies_largprecong : (g:ctx) [g |- P] CongM [g |- Q] -> LargPreCong [g |- P] [g |- Q] =
+rec structcong_implies_largprecong : (g:ctx) [g |- P] Cong [g |- Q] -> LargPreCong [g |- P] [g |- Q] =
     fun sc .LP_BarbSim => structcong_implies_barbsim_left sc
     | sc .LP_PreCong c => structcong_implies_largprecong (C_ctx sc c)
 ;
@@ -29,9 +29,9 @@ rec structcong_implies_largprecong : (g:ctx) [g |- P] CongM [g |- Q] -> LargPreC
 %%% Characterization of barbed precongruence as the largest precongruence included in barbed similarity %%%
 
 % Barbed precongruence is a precongruence
-rec barbpre_precong: (g:ctx) (g':ctx) BarbPre [g' |- P] [g' |- Q] -> pctxM [g' |- P] [g |- CP] [g' |- Q] [g |- CQ] -> BarbPre [g |- CP] [g |- CQ] =
+rec barbpre_precong: (g:ctx) (g':ctx) BarbPre [g' |- P] [g' |- Q] -> PCtx [g' |- P] [g |- CP] [g' |- Q] [g |- CQ] -> BarbPre [g |- CP] [g |- CQ] =
   / total b (barbpre_precong _ _ _ _ _ _ b) /
-  fn b => fn c => let BC [_ |- _] [_ |- _] bs = b in BC [_ |- _] [_ |- _] (mlam CCP => mlam CCQ => fn c' => let c'' = pctxM_comp c c' in bs [_ |- _] [_ |- _] c'')
+  fn b => fn c => let BC [_ |- _] [_ |- _] bs = b in BC [_ |- _] [_ |- _] (mlam CCP => mlam CCQ => fn c' => let c'' = PCtx_comp c c' in bs [_ |- _] [_ |- _] c'')
 ;
 
 % Barbed precongruence is included in the largest precongruence included in barbed similarity

@@ -16,8 +16,8 @@ rec res_new: (g:ctx) [g |- (p_res \x. P[..]) cong P] =
 % The structural definition implies the lts one (input case)
 rec barb_in_struct_to_Barb_in: (g:ctx) [g |- barb_in_struct P X] -> Barb_in [g |- P] [g |- X] = 
   fn b => let [g |- barb_in_struct_def C R] = b in case [g |- R] of
-  | [g |- biw_zero] => let b' = structcong_implies_barbsim_right (congtoCongM [g |- C]) in b' .BarbSim_barb_in (Barb_in_b [g |- bs_par1 bs_in])
-  | [g |- biw_add \x. R'] => let b' = barb_in_struct_to_Barb_in [g,x:names |- barb_in_struct_def c_ref R'] in let Barb_in_b [g,x:names |- S] = b' in let b'' = structcong_implies_barbsim_right (congtoCongM [g |- C]) in b'' .BarbSim_barb_in (Barb_in_b [g |- bs_res \x. S])
+  | [g |- biw_zero] => let b' = structcong_implies_barbsim_right (congtoCong [g |- C]) in b' .BarbSim_barb_in (Barb_in_b [g |- bs_par1 bs_in])
+  | [g |- biw_add \x. R'] => let b' = barb_in_struct_to_Barb_in [g,x:names |- barb_in_struct_def c_ref R'] in let Barb_in_b [g,x:names |- S] = b' in let b'' = structcong_implies_barbsim_right (congtoCong [g |- C]) in b'' .BarbSim_barb_in (Barb_in_b [g |- bs_res \x. S])
 ;
 
 % If P has an input barb X according to the structural definition and x is different from X, then also (nu x (P | Q)) has an input barb X according to the same definition
@@ -57,13 +57,13 @@ rec Barb_in_to_barb_in_struct: (g:ctx) {P : [g |- proc]} Barb_in [g |- P] [g |- 
 % The structural definition implies the lts one (output case)
 rec barb_out_struct_to_Barb_out: (g:ctx) [g |- barb_out_struct P X] -> Barb_out [g |- P] [g |- X] = 
   fn b => let [g |- barb_out_struct_def C R] = b in case [g |- R] of
-  | [g |- bow_zero] => let b' = structcong_implies_barbsim_right (congtoCongM [g |- C]) in b' .BarbSim_barb_out (Barb_out_f [g |- fs_par1 fs_out])
+  | [g |- bow_zero] => let b' = structcong_implies_barbsim_right (congtoCong [g |- C]) in b' .BarbSim_barb_out (Barb_out_f [g |- fs_par1 fs_out])
   | [g |- bow_add \x. R'] => let b' = barb_out_struct_to_Barb_out [g,x:names |- barb_out_struct_def c_ref R'] in (case b' of
-    | Barb_out_f [g,x:names |- S] => let b'' = structcong_implies_barbsim_right (congtoCongM [g |- C]) in let ro = res_or_open [_ |- _] [_,x:names |- _] [_,x:names |- S] in (case ro of
+    | Barb_out_f [g,x:names |- S] => let b'' = structcong_implies_barbsim_right (congtoCong [g |- C]) in let ro = res_or_open [_ |- _] [_,x:names |- _] [_,x:names |- S] in (case ro of
       | DiffName [_ |- S'] => b'' .BarbSim_barb_out (Barb_out_f [g |- fs_res \x. S])
       | SameName [_ |- S'] => b'' .BarbSim_barb_out (Barb_out_b [g |- bs_open \x. S])
     )
-    | Barb_out_b [g,x:names |- S] => let b'' = structcong_implies_barbsim_right (congtoCongM [g |- C]) in b'' .BarbSim_barb_out (Barb_out_b [g |- bs_res \x. S])
+    | Barb_out_b [g,x:names |- S] => let b'' = structcong_implies_barbsim_right (congtoCong [g |- C]) in b'' .BarbSim_barb_out (Barb_out_b [g |- bs_res \x. S])
   )
 ;
 

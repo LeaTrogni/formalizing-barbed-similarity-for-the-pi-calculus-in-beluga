@@ -22,7 +22,7 @@ rec res_or_open: (g:ctx) {X : [g |- names]} {Y : [g,x:names |- names]} [g, x:nam
 
 % Predicate about the existence of a rewriting of the form Q | !P
 inductive Ex_par_rep: (g:ctx) [g |- proc] -> [g |- proc] -> [g |- proc] -> ctype =
-  | Ex_par_rep_def: [g |- fstep (S p_par (P p_par P)) f_tau Q] -> [g |- R] CongM [g |- Q p_par (p_rep P)] -> Ex_par_rep [g |- P] [g |- R] [g |- S]
+  | Ex_par_rep_def: [g |- fstep (S p_par (P p_par P)) f_tau Q] -> [g |- R] Cong [g |- Q p_par (p_rep P)] -> Ex_par_rep [g |- P] [g |- R] [g |- S]
 ;
 
 rec par_rep: (g:ctx) [g |- fstep (S p_par (p_rep P)) f_tau R] -> Ex_par_rep [g |- P] [g |- R] [g |- S] =

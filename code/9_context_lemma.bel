@@ -195,7 +195,7 @@ rec barbpre'_rep: (g:ctx) (h:ctx) {$S :$[h |- g]} {R : [h |- proc]} BarbPre' [g 
 ;
 
 % It is a barbed precongruence
-rec barbpre'_is_precong: (g:ctx) (g':ctx) BarbPre' [g' |- P] [g' |- Q] -> pctxM [g' |- P] [g |- CP] [g' |- Q] [g |- CQ] -> BarbPre' [g |- CP] [g |- CQ] =
+rec barbpre'_is_precong: (g:ctx) (g':ctx) BarbPre' [g' |- P] [g' |- Q] -> PCtx [g' |- P] [g |- CP] [g' |- Q] [g |- CQ] -> BarbPre' [g |- CP] [g |- CQ] =
   fn bp' => fn c => (case c of
     | pidM => let BC' bs = bp' in bp'
     | pinM c' => let ih = (barbpre'_is_precong bp' c') in BC' (mlam $S => mlam R => barbpre'_in $[_ |- $S[..]] ih)

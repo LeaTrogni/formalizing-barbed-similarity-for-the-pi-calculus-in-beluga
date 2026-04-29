@@ -722,16 +722,16 @@ fn c ⇒ fn b ⇒ case c of
 
 % NEW!
 % If P is structurally congruent to Q, then P is barbed similar to Q
-rec structcong_implies_barbsim_left: (g:ctx) [g |- P] CongM [g |- Q] -> BarbSim [g |- P] [g |- Q] =
-  fun c .BarbSim_barb_in b => let Barb_in_b s = b in let [_ |- bsc S \x. C] = cong_bstepleft_impl_bstepright (CongMtocong c) s in Barb_in_b [_ |- S]
+rec structcong_implies_barbsim_left: (g:ctx) [g |- P] Cong [g |- Q] -> BarbSim [g |- P] [g |- Q] =
+  fun c .BarbSim_barb_in b => let Barb_in_b s = b in let [_ |- bsc S \x. C] = cong_bstepleft_impl_bstepright (Congtocong c) s in Barb_in_b [_ |- S]
     | c .BarbSim_barb_out b => (case b of
-      | Barb_out_b s => let [_ |- bsc S \x. C] = cong_bstepleft_impl_bstepright (CongMtocong c) s in Barb_out_b [_ |- S]
-      | Barb_out_f s => let [_ |- fsc S C] = cong_fstepleft_impl_fstepright (CongMtocong c) s in Barb_out_f [_ |- S]
+      | Barb_out_b s => let [_ |- bsc S \x. C] = cong_bstepleft_impl_bstepright (Congtocong c) s in Barb_out_b [_ |- S]
+      | Barb_out_f s => let [_ |- fsc S C] = cong_fstepleft_impl_fstepright (Congtocong c) s in Barb_out_f [_ |- S]
     )
-    | c .BarbSim_tau s => let [_ |- fsc S C] = cong_fstepleft_impl_fstepright (CongMtocong c) s in Ex_sim_barb_def [_ |- S] (structcong_implies_barbsim_left (congtoCongM [_ |- C]))
+    | c .BarbSim_tau s => let [_ |- fsc S C] = cong_fstepleft_impl_fstepright (Congtocong c) s in Ex_sim_barb_def [_ |- S] (structcong_implies_barbsim_left (congtoCong [_ |- C]))
 ;
 
 % If Q is structurally congruent to P, then P is barbed similar to Q
-rec structcong_implies_barbsim_right: (g:ctx) [g |- Q] CongM [g |- P] -> BarbSim [g |- P] [g |- Q] =
+rec structcong_implies_barbsim_right: (g:ctx) [g |- Q] Cong [g |- P] -> BarbSim [g |- P] [g |- Q] =
   fn c => structcong_implies_barbsim_left (C_sym c)
 ;

@@ -34,8 +34,8 @@ rec out_barb_sim : (g:ctx) BarbSim [g |- P] [g |- Q] -> BarbSim [g |- p_out X Y 
 
 % Barbed similarity is compatible with restriction
 rec res_barb_sim : (g:ctx) BarbSim [g, x : names |- P] [g, x : names |- Q] -> BarbSim [g |- p_res (\x. P)] [g |- p_res (\x. Q)] = 
-  fun d .BarbSim_barb_in b => pctxM_preserves_barb_in (mlam Y => fn b' => d .BarbSim_barb_in b') (presM pidM) b
-    | d .BarbSim_barb_out b => pctxM_preserves_barb_out (mlam Y => fn b' => d .BarbSim_barb_out b') (presM pidM) b
+  fun d .BarbSim_barb_in b => PCtx_preserves_barb_in (mlam Y => fn b' => d .BarbSim_barb_in b') (presM pidM) b
+    | d .BarbSim_barb_out b => PCtx_preserves_barb_out (mlam Y => fn b' => d .BarbSim_barb_out b') (presM pidM) b
     | d .BarbSim_tau s => let [_ |- fs_res \x. S] = s in let Ex_sim_barb_def [_,x:names |- S'] b' = d .BarbSim_tau [_,x:names |- S] in Ex_sim_barb_def [_ |- fs_res \x. S'] (res_barb_sim b')
 ;
 

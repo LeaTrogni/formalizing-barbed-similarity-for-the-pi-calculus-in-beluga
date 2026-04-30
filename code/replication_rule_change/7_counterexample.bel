@@ -1,0 +1,238 @@
+--coverage
+
+% Auxiliary type without constructors to model negation
+LF not_possible : type =
+;
+
+% P | !P Cong !P
+rec EX1: (g:ctx) {A : [g |- names]} {Y : [g |- names]} [g,w:names |- (p_res \z. ((p_out A[..] Y[..] (p_out z Y[..] p_zero)) p_par (p_in A[..] \x1. (p_in z \x2. (p_in w \x3. p_zero))))) p_par (p_rep (p_res \z. ((p_out A[..] Y[..] (p_out z Y[..] p_zero)) p_par (p_in A[..] \x1. (p_in z \x2. (p_in w \x3. p_zero))))))] Cong [g,w:names |- p_rep (p_res \z. ((p_out A[..] Y[..] (p_out z Y[..] p_zero)) p_par (p_in A[..] \x1. (p_in z \x2. (p_in w \x3. p_zero)))))] =
+  mlam A => mlam Y => C_sym Rep_unfold
+;
+
+% Q1 | (Q2 | !P) Cong Q3 | !P
+rec EX2: (g:ctx) {A : [g |- names]} {Y : [g |- names]} [g,w:names |- 
+    (p_res \z. ((p_out z Y[..] p_zero) p_par (p_in A[..] \x1. (p_in z \x2. (p_in w \x3. p_zero))))) 
+    p_par 
+    ((p_res \z. ((p_out A[..] Y[..] (p_out z Y[..] p_zero)) p_par (p_in z \x2. (p_in w \x3. p_zero))))
+    p_par 
+    (p_rep (p_res \z. ((p_out A[..] Y[..] (p_out z Y[..] p_zero)) p_par (p_in A[..] \x1. (p_in z \x2. (p_in w \x3. p_zero)))))))] 
+  Cong 
+  [g,w:names |- 
+    (p_res \z. ((p_out z Y[..] p_zero) p_par (p_in z \x2. (p_in w \x3. p_zero))))
+    p_par
+    (p_rep (p_res \z. ((p_out A[..] Y[..] (p_out z Y[..] p_zero)) p_par (p_in A[..] \x1. (p_in z \x2. (p_in w \x3. p_zero))))))] =
+  mlam A => mlam Y => let [g,w:names |- fsc S C] = cong_fstepleft_impl_fstepright (Congtocong (EX1 [_ |- A[..]] [_ |- Y[..]])) [_ |- fs_com1 (fs_res \x. (fs_par1 fs_out)) (bs_rep (bs_res \x. (bs_par2 bs_in)))] in let [g,w:names |- fs_rep (fs_res \x. (fs_com1 fs_out bs_in))] = [g,w:names |- S] in congtoCong [g,w:names |- C]
+;
+
+% Q3 | !P is barbed similar to Q1 | (Q2 | !P)
+rec EX3: (g:ctx) {A : [g |- names]} {Y : [g |- names]} BarbSim [g,w:names |- 
+    (p_res \z. ((p_out z Y[..] p_zero) p_par (p_in z \x2. (p_in w \x3. p_zero))))
+    p_par
+    (p_rep (p_res \z. ((p_out A[..] Y[..] (p_out z Y[..] p_zero)) p_par (p_in A[..] \x1. (p_in z \x2. (p_in w \x3. p_zero))))))] 
+  [g,w:names |- 
+    (p_res \z. ((p_out z Y[..] p_zero) p_par (p_in A[..] \x1. (p_in z \x2. (p_in w \x3. p_zero))))) 
+    p_par 
+    ((p_res \z. ((p_out A[..] Y[..] (p_out z Y[..] p_zero)) p_par (p_in z \x2. (p_in w \x3. p_zero))))
+    p_par 
+    (p_rep (p_res \z. ((p_out A[..] Y[..] (p_out z Y[..] p_zero)) p_par (p_in A[..] \x1. (p_in z \x2. (p_in w \x3. p_zero)))))))]  =
+  mlam A => mlam Y => structcong_implies_barbsim_left (C_sym (EX2 [_ |- A] [_ |- Y]))
+;
+
+% Q3 | !P is not barbed similar to Q1 | (Q2 | !P)
+rec EX4: (g:ctx) {A : [g |- names]} {Y : [g |- names]} BarbSim [g,w:names |- 
+    (p_res \z. ((p_out z Y[..] p_zero) p_par (p_in z \x2. (p_in w \x3. p_zero))))
+    p_par
+    (p_rep (p_res \z. ((p_out A[..] Y[..] (p_out z Y[..] p_zero)) p_par (p_in A[..] \x1. (p_in z \x2. (p_in w \x3. p_zero))))))] 
+  [g,w:names |- 
+  (p_res \z. ((p_out z Y[..] p_zero) p_par (p_in A[..] \x1. (p_in z \x2. (p_in w \x3. p_zero))))) 
+    p_par 
+  ((p_res \z. ((p_out A[..] Y[..] (p_out z Y[..] p_zero)) p_par (p_in z \x2. (p_in w \x3. p_zero))))
+    p_par 
+  (p_rep (p_res \z. ((p_out A[..] Y[..] (p_out z Y[..] p_zero)) p_par (p_in A[..] \x1. (p_in z \x2. (p_in w \x3. p_zero)))))))] -> [g,w:names |- not_possible] =
+  mlam A => mlam Y => fn b => let Ex_sim_barb_def s b' = b .BarbSim_tau [_ |- fs_par1 (fs_res \z. (fs_com1 fs_out bs_in))] in let Barb_in_b [g,w:names |- Sb] = b' .BarbSim_barb_in (Barb_in_b [_ |- bs_par1 (bs_res \x. (bs_par2 bs_in))]) in case s of
+  | [g,w:names |- fs_par1 S] => let [g,w:names |- fs_res \z. S'] = [g,w:names |- S] in (case [g,w:names,z:names |- S'] of
+    | [g,w:names,z:names |- fs_par1 S''] => impossible [g,w:names,z:names |- S'']
+    | [g,w:names,z:names |- fs_par2 S''] => impossible [g,w:names,z:names |- S'']
+    | [g,w:names,z:names |- fs_com1 S1 S2] => let [g,w:names,z:names |- fs_out] = [g,w:names,z:names |- S1] in impossible [g,w:names,z:names |- S2]
+    | [g,w:names,z:names |- fs_com2 S1 S2] => impossible [g,w:names,z:names |- S1]
+    | [g,w:names,z:names |- fs_close1 S1 S2] => impossible [g,w:names,z:names |- S1]
+    | [g,w:names,z:names |- fs_close2 S1 S2] => impossible [g,w:names,z:names |- S1]
+  )
+  | [g,w:names |- fs_par2 S] => (case [g,w:names |- S] of
+    | [g,w:names |- fs_par1 S'] => let [g,w:names |- fs_res \z. S''] = [g,w:names |- S'] in (case [g,w:names,z:names |- S''] of
+      | [g,w:names,z:names |- fs_par1 S'''] => impossible [g,w:names,z:names |- S''']
+      | [g,w:names,z:names |- fs_par2 S'''] => impossible [g,w:names,z:names |- S''']
+      | [g,w:names,z:names |- fs_com1 S1 S2] => let [g,w:names,z:names |- fs_out] = [g,w:names,z:names |- S1] in impossible [g,w:names,z:names |- S2]
+      | [g,w:names,z:names |- fs_com2 S1 S2] => impossible [g,w:names,z:names |- S1]
+      | [g,w:names,z:names |- fs_close1 S1 S2] => impossible [g,w:names,z:names |- S1]
+      | [g,w:names,z:names |- fs_close2 S1 S2] => impossible [g,w:names,z:names |- S1]
+    )
+    | [g,w:names |- fs_par2 S'] => let [g,w:names |- fs_rep (fs_res \z. S'')] = [g,w:names |- S'] in (case [g,w:names,z:names |- S''] of
+      | [g,w:names,z:names |- fs_par1 S'''] => impossible [g,w:names,z:names |- S''']
+      | [g,w:names,z:names |- fs_par2 S'''] => impossible [g,w:names,z:names |- S''']
+    | [g,w:names,z:names |- fs_com1 S1 S2] => let [g,w:names,z:names |- fs_out] = [g,w:names,z:names |- S1] in let [g,w:names,z:names |- bs_in] = [g,w:names,z:names |- S2] in
+    (case [g,w:names |- Sb] of
+        | [g,w:names |- bs_par1 (bs_res \z. Sb')] => (case [g,w:names,z:names |- Sb'] of
+          | [g,w:names,z:names |- bs_par1 Sb''] => impossible [g,w:names,z:names |- Sb'']
+          | [g,w:names,z:names |- bs_par2 Sb''] => impossible [g,w:names,z:names |- Sb'']
+        )
+        | [g,w:names |- bs_par2 Sb'] => (case [g,w:names |- Sb'] of
+          | [g,w:names |- bs_par1 (bs_res \z. Sb'')] => (case [g,w:names,z:names |- Sb''] of
+            | [g,w:names,z:names |- bs_par1 Sb'''] => impossible [g,w:names,z:names |- Sb''']
+            | [g,w:names,z:names |- bs_par2 Sb'''] => impossible [g,w:names,z:names |- Sb''']
+          )
+          | [g,w:names |- bs_par2 Sb''] => (case [g,w:names |- Sb''] of
+            | [g,w:names |- bs_par1 (bs_res \z. Sb''')] => (case [g,w:names,z:names |- Sb'''] of
+              | [g,w:names,z:names |- bs_par1 Sb''''] => impossible [g,w:names,z:names |- Sb'''']
+              | [g,w:names,z:names |- bs_par2 Sb''''] => impossible [g,w:names,z:names |- Sb'''']
+            )
+            | [g,w:names |- bs_par2 (bs_rep (bs_res \z. Sb'''))] => (case [g,w:names,z:names |- Sb'''] of
+              | [g,w:names,z:names |- bs_par1 Sb''''] => impossible [g,w:names,z:names |- Sb'''']
+              | [g,w:names,z:names |- bs_par2 Sb''''] => impossible [g,w:names,z:names |- Sb'''']
+            )
+          )
+        )
+      )
+      | [g,w:names,z:names |- fs_com2 S1 S2] => impossible [g,w:names,z:names |- S1]
+      | [g,w:names,z:names |- fs_close1 S1 S2] => impossible [g,w:names,z:names |- S1]
+      | [g,w:names,z:names |- fs_close2 S1 S2] => impossible [g,w:names,z:names |- S1]
+    )
+    | [g,w:names |- fs_com1 S1 S2] => let [g,w:names |- fs_res \z. S1'] = [g,w:names |- S1] in let [g,w:names |- bs_rep (bs_res \z. S2')] = [g,w:names |- S2] in (case [g,w:names,z:names |- S1'] of
+      | [g,w:names,z:names |- fs_par1 S1''] => let [g,w:names,z:names |- fs_out] = [g,w:names,z:names |- S1''] in (case [g,w:names,z:names |- S2'] of
+        | [g,w:names,z:names |- bs_par1 S2''] => impossible [g,w:names,z:names |- S2'']
+        | [g,w:names,z:names |- bs_par2 S2''] => let [g,w:names,z:names |- bs_in] = [g,w:names,z:names |- S2''] in (case [g,w:names |- Sb] of
+          | [g,w:names |- bs_par1 (bs_res \z. Sb')] => (case [g,w:names,z:names |- Sb'] of
+            | [g,w:names,z:names |- bs_par1 Sb''] => impossible [g,w:names,z:names |- Sb'']
+            | [g,w:names,z:names |- bs_par2 Sb''] => impossible [g,w:names,z:names |- Sb'']
+          )
+          | [g,w:names |- bs_par2 Sb'] => (case [g,w:names |- Sb'] of
+            | [g,w:names |- bs_par1 (bs_res \z. Sb'')] => (case [g,w:names,z:names |- Sb''] of
+              | [g,w:names,z:names |- bs_par1 Sb'''] => impossible [g,w:names,z:names |- Sb''']
+              | [g,w:names,z:names |- bs_par2 Sb'''] => impossible [g,w:names,z:names |- Sb''']
+            )
+            | [g,w:names |- bs_par2 Sb''] => (case [g,w:names |- Sb''] of
+              | [g,w:names |- bs_par1 (bs_res \z. Sb''')] => (case [g,w:names,z:names |- Sb'''] of
+                | [g,w:names,z:names |- bs_par1 Sb''''] => impossible [g,w:names,z:names |- Sb'''']
+                | [g,w:names,z:names |- bs_par2 Sb''''] => impossible [g,w:names,z:names |- Sb'''']
+              )
+              | [g,w:names |- bs_par2 (bs_rep (bs_res \z. Sb'''))] => (case [g,w:names,z:names |- Sb'''] of
+                | [g,w:names,z:names |- bs_par1 Sb''''] => impossible [g,w:names,z:names |- Sb'''']
+                | [g,w:names,z:names |- bs_par2 Sb''''] => impossible [g,w:names,z:names |- Sb'''']
+              )
+            )
+          )
+        )
+      )
+      | [g,w:names,z:names |- fs_par2 S1''] => impossible [g,w:names,z:names |- S1'']
+    )
+    | [g,w:names |- fs_com2 S1 S2] => let [g,w:names |- bs_res \z. S1'] = [g,w:names |- S1] in (case [g,w:names,z:names |- S1'] of
+      | [g,w:names,z:names |- bs_par1 S1''] => impossible [g,w:names,z:names |- S1'']
+        | [g,w:names,z:names |- bs_par2 S1''] => impossible [g,w:names,z:names |- S1'']
+    )
+    | [g,w:names |- fs_close1 S1 S2] => (case [g,w:names |- S1] of
+      | [g,w:names |- bs_res \z. S1'] => (case [g,w:names,z:names |- S1'] of
+        | [g,w:names,z:names |- bs_par1 S1''] => impossible [g,w:names,z:names |- S1'']
+        | [g,w:names,z:names |- bs_par2 S1''] => impossible [g,w:names,z:names |- S1'']
+      )
+      | [g,w:names |- bs_open \z. S1'] => (case [g,w:names,z:names |- S1'] of
+        | [g,w:names,z:names |- fs_par1 S1''] => impossible [g,w:names,z:names |- S1'']
+        | [g,w:names,z:names |- fs_par2 S1''] => impossible [g,w:names,z:names |- S1'']
+      )
+    )
+    | [g,w:names |- fs_close2 S1 S2] => let [g,w:names |- bs_rep S2'] = [g,w:names |- S2] in (case [g,w:names |- S2'] of
+      | [g,w:names |- bs_res \z. S2''] => (case [g,w:names,z:names |- S2''] of
+        | [g,w:names,z:names |- bs_par1 S2'''] => impossible [g,w:names,z:names |- S2''']
+        | [g,w:names,z:names |- bs_par2 S2'''] => impossible [g,w:names,z:names |- S2''']
+      )
+      | [g,w:names |- bs_open \z. S2''] => (case [g,w:names,z:names |- S2''] of
+        | [g,w:names,z:names |- fs_par1 S2'''] => impossible [g,w:names,z:names |- S2''']
+        | [g,w:names,z:names |- fs_par2 S2'''] => impossible [g,w:names,z:names |- S2''']
+      )
+    )
+  )
+  | [g,w:names |- fs_com1 S1 S2] => let [g,w:names |- fs_res \z. S1'] = [g,w:names |- S1] in (case [g,w:names,z:names |- S1'] of
+    | [g,w:names,z:names |- fs_par1 S1''] => impossible [g,w:names,z:names |- S1'']
+    | [g,w:names,z:names |- fs_par2 S1''] => impossible [g,w:names,z:names |- S1'']
+  )
+  | [g,w:names |- fs_com2 S1 S2] => let [g,w:names |- bs_res \z. S1'] = [g,w:names |- S1] in (case [g,w:names,z:names |- S1'] of
+    | [g,w:names,z:names |- bs_par1 S1''] => impossible [g,w:names,z:names |- S1'']
+    | [g,w:names,z:names |- bs_par2 S1''] => let [g,w:names,z:names |- bs_in] = [g,w:names,z:names |- S1''] in (case [g,w:names |- S2] of
+      | [g,w:names |- fs_par1 (fs_res \z. S2')] => (case [g,w:names,z:names |- S2'] of
+        | [g,w:names,z:names |- fs_par1 S2''] => let [g,w:names,z:names |- fs_out] = [g,w:names,z:names |- S2''] in (case [g,w:names |- Sb] of
+          | [g,w:names |- bs_par1 (bs_res \z. Sb')] => (case [g,w:names,z:names |- Sb'] of
+            | [g,w:names,z:names |- bs_par1 Sb''] => impossible [g,w:names,z:names |- Sb'']
+            | [g,w:names,z:names |- bs_par2 Sb''] => impossible [g,w:names,z:names |- Sb'']
+          )
+          | [g,w:names |- bs_par2 Sb'] => (case [g,w:names |- Sb'] of
+            | [g,w:names |- bs_par1 (bs_res \z. Sb'')] => (case [g,w:names,z:names |- Sb''] of
+              | [g,w:names,z:names |- bs_par1 Sb'''] => impossible [g,w:names,z:names |- Sb''']
+              | [g,w:names,z:names |- bs_par2 Sb'''] => impossible [g,w:names,z:names |- Sb''']
+            )
+            | [g,w:names |- bs_par2 (bs_rep (bs_res \z. Sb''))] => (case [g,w:names,z:names |- Sb''] of
+              | [g,w:names,z:names |- bs_par1 Sb'''] => impossible [g,w:names,z:names |- Sb''']
+              | [g,w:names,z:names |- bs_par1 Sb'''] => impossible [g,w:names,z:names |- Sb''']
+            )
+          )
+        )
+        | [g,w:names,z:names |- fs_par2 S2''] => impossible [g,w:names,z:names |- S2'']
+      )
+      | [g,w:names |- fs_par2 (fs_rep (fs_res \z. S2'))] => (case [g,w:names,z:names |- S2'] of
+        | [g,w:names,z:names |- fs_par1 S2''] => let [g,w:names,z:names |- fs_out] = [g,w:names,z:names |- S2''] in (case [g,w:names |- Sb] of
+          | [g,w:names |- bs_par1 (bs_res \z. Sb')] => (case [g,w:names,z:names |- Sb'] of
+            | [g,w:names,z:names |- bs_par1 Sb''] => impossible [g,w:names,z:names |- Sb'']
+            | [g,w:names,z:names |- bs_par2 Sb''] => impossible [g,w:names,z:names |- Sb'']
+          )
+          | [g,w:names |- bs_par2 Sb'] => (case [g,w:names |- Sb'] of
+            | [g,w:names |- bs_par1 (bs_res \z. Sb'')] => (case [g,w:names,z:names |- Sb''] of
+              | [g,w:names,z:names |- bs_par1 Sb'''] => impossible [g,w:names,z:names |- Sb''']
+              | [g,w:names,z:names |- bs_par2 Sb'''] => impossible [g,w:names,z:names |- Sb''']
+            )
+            | [g,w:names |- bs_par2 Sb''] => (case [g,w:names |- Sb''] of
+              | [g,w:names |- bs_par1 (bs_res \z. Sb''')] => (case [g,w:names,z:names |- Sb'''] of
+                | [g,w:names,z:names |- bs_par1 Sb''''] => impossible [g,w:names,z:names |- Sb'''']
+                | [g,w:names,z:names |- bs_par2 Sb''''] => impossible [g,w:names,z:names |- Sb'''']
+              )
+              | [g,w:names |- bs_par2 (bs_rep (bs_res \z. Sb'''))] => (case [g,w:names,z:names |- Sb'''] of
+                | [g,w:names,z:names |- bs_par1 Sb''''] => impossible [g,w:names,z:names |- Sb'''']
+                | [g,w:names,z:names |- bs_par2 Sb''''] => impossible [g,w:names,z:names |- Sb'''']
+              )
+            )
+          )
+        )
+        | [g,w:names,z:names |- fs_par2 S2''] => impossible [g,w:names,z:names |- S2'']
+      )
+    )
+  )
+  | [g,w:names |- fs_close1 S1 S2] => (case [g,w:names |- S1] of
+    | [g,w:names |- bs_res \z. S1'] => (case [g,w:names,z:names |- S1'] of
+      | [g,w:names,z:names |- bs_par1 S1''] => impossible [g,w:names,z:names |- S1'']
+      | [g,w:names,z:names |- bs_par2 S1''] => impossible [g,w:names,z:names |- S1'']
+    )
+    | [g,w:names |- bs_open \z. S1'] => (case [g,w:names,z:names |- S1'] of
+      | [g,w:names,z:names |- fs_par1 S1''] => impossible [g,w:names,z:names |- S1'']
+      | [g,w:names,z:names |- fs_par2 S1''] => impossible [g,w:names,z:names |- S1'']
+    )
+  )
+  | [g,w:names |- fs_close2 S1 S2] => (case [g,w:names |- S2] of
+    | [g,w:names |- bs_par1 S2'] => (case [g,w:names |- S2'] of
+      | [g,w:names |- bs_res \z. S2''] => (case [g,w:names,z:names |- S2''] of
+        | [g,w:names,z:names |- bs_par1 S2'''] => impossible [g,w:names,z:names |- S2''']
+        | [g,w:names,z:names |- bs_par2 S2'''] => impossible [g,w:names,z:names |- S2''']
+      )
+      | [g,w:names |- bs_open \z. S2''] => (case [g,w:names,z:names |- S2''] of
+        | [g,w:names,z:names |- fs_par1 S2'''] => impossible [g,w:names,z:names |- S2''']
+        | [g,w:names,z:names |- fs_par2 S2'''] => impossible [g,w:names,z:names |- S2''']
+      )
+    )
+    | [g,w:names |- bs_par2 S2'] => let [g,w:names |- bs_rep S2''] = [g,w:names |- S2'] in (case [g,w:names |- S2''] of
+      | [g,w:names |- bs_res \z. S2'''] => (case [g,w:names,z:names |- S2'''] of
+        | [g,w:names,z:names |- bs_par1 S2''''] => impossible [g,w:names,z:names |- S2'''']
+        | [g,w:names,z:names |- bs_par2 S2''''] => impossible [g,w:names,z:names |- S2'''']
+      )
+      | [g,w:names |- bs_open \z. S2'''] => (case [g,w:names,z:names |- S2'''] of
+        | [g,w:names,z:names |- fs_par1 S2''''] => impossible [g,w:names,z:names |- S2'''']
+        | [g,w:names,z:names |- fs_par2 S2''''] => impossible [g,w:names,z:names |- S2'''']
+      )
+    )
+  )
+;

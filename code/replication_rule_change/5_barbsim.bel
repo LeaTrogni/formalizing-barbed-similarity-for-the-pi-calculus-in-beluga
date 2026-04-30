@@ -1,0 +1,54 @@
+%%% Properties of barbed similarity %%%
+
+% Barbed similarity is a preorder %
+
+rec barb_sim_refl : (g:ctx) BarbSim [g |- P] [g |- P] = 
+  fun .BarbSim_barb_in b => b
+    | .BarbSim_barb_out b => b
+    | .BarbSim_tau s => Ex_sim_barb_def s barb_sim_refl
+;
+
+rec barb_sim_trans : (g:ctx) BarbSim [g |- P] [g |- Q] -> BarbSim [g |- Q] [g |- R] -> BarbSim [g |- P] [g |- R] = 
+  fun d1 d2 .BarbSim_barb_in b => d2 .BarbSim_barb_in (d1 .BarbSim_barb_in b)
+    | d1 d2 .BarbSim_barb_out b => d2 .BarbSim_barb_out (d1 .BarbSim_barb_out b)
+    | d1 d2 .BarbSim_tau s => let d1' = d1 .BarbSim_tau in let d2' = d2 .BarbSim_tau in let Ex_sim_barb_def s1 e1 = d1' s in let Ex_sim_barb_def s2 e2 = d2' s1 in Ex_sim_barb_def s2 (barb_sim_trans e1 e2)
+;
+
+
+% Barbed similarity is compatible with input prefix
+rec in_barb_sim : (g:ctx) BarbSim [g, x:names |- P] [g,x:names |- Q] -> BarbSim [g |- p_in A (\x. P)] [g |- p_in A (\x. Q)] =
+  fun d .BarbSim_barb_in b => let Barb_in_b s = b in let [_ |- bs_in] = s in Barb_in_b [_ |- bs_in]
+    | d .BarbSim_barb_out b => let Barb_out_b s = b in impossible s
+    | d .BarbSim_tau s => impossible s
+;
+
+% Barbed similarity is compatible with output prefix
+rec out_barb_sim : (g:ctx) BarbSim [g |- P] [g |- Q] -> BarbSim [g |- p_out X Y P] [g |- p_out X Y Q] =
+  fun d .BarbSim_barb_in b => let Barb_in_b s = b in impossible s
+    | d .BarbSim_barb_out b => (case b of
+      | Barb_out_f s => let [_ |- fs_out] = s in Barb_out_f [_ |- fs_out]
+      | Barb_out_b s => impossible s
+    )
+    | d .BarbSim_tau s => impossible s
+;
+
+% Barbed similarity is compatible with restriction
+rec res_barb_sim : (g:ctx) BarbSim [g, x : names |- P] [g, x : names |- Q] -> BarbSim [g |- p_res (\x. P)] [g |- p_res (\x. Q)] = 
+  fun d .BarbSim_barb_in b => PCtx_preserves_barb_in (mlam Y => fn b' => d .BarbSim_barb_in b') (presM pidM) b
+    | d .BarbSim_barb_out b => PCtx_preserves_barb_out (mlam Y => fn b' => d .BarbSim_barb_out b') (presM pidM) b
+    | d .BarbSim_tau s => let [_ |- fs_res \x. S] = s in let Ex_sim_barb_def [_,x:names |- S'] b' = d .BarbSim_tau [_,x:names |- S] in Ex_sim_barb_def [_ |- fs_res \x. S'] (res_barb_sim b')
+;
+
+% Barbed similarity is the same as barbed similarity up to
+
+rec barbsim_implies_barbsimupto : (g:ctx) BarbSim [g |- P] [g |- Q] -> BarbSimUpTo [g |- P] [g |- Q] =
+  fun bs .BarbSimUpTo_barb_in b => bs .BarbSim_barb_in b
+    | bs .BarbSimUpTo_barb_out b => bs .BarbSim_barb_out b
+    | bs .BarbSimUpTo_f_tau s => let Ex_sim_barb_def s' bs' = bs .BarbSim_tau s in Ex_sim_barb_up_to_def s' barb_sim_refl (barbsim_implies_barbsimupto bs') barb_sim_refl
+;
+
+rec barbsimupto_implies_barbsim : (g:ctx) BarbSimUpTo [g |- P] [g |- Q] -> BarbSim [g |- P] [g |- Q] =
+  fun bsu .BarbSim_barb_in b => bsu .BarbSimUpTo_barb_in b
+    | bsu .BarbSim_barb_out b => bsu .BarbSimUpTo_barb_out b
+    | bsu .BarbSim_tau s => let Ex_sim_barb_up_to_def s' bs1 bsu' bs2 = bsu .BarbSimUpTo_f_tau s in Ex_sim_barb_def s' (barb_sim_trans (barb_sim_trans bs1 (barbsimupto_implies_barbsim bsu')) bs2)
+;

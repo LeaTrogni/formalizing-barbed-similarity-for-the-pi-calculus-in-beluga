@@ -168,6 +168,8 @@ Structural congruence is included in the largest precongruence included in barbe
 
 Properties of $\leq_{\mid\sigma}$ (`BarbPre'`) and context lemma.
 
+- `subst_eq`  
+If $\overline{x}y.P = Q$, $\sigma$ is a substitution and $y$ is a fixpoint of $\sigma$, then $\overline{x \sigma} y.P \sigma = Q \sigma$.
 - `strength_subst_in`, `strength_subst_out_b`, `strength_subst_out_f`  
  If $P \sigma \xrightarrow{\alpha} P'$ and $\alpha \neq \tau$, then there exists $\beta, P''$ such that $P \xrightarrow{\beta} P''$, $\alpha = \beta \sigma$.
 - `barbpre'_implies_barbsim`  

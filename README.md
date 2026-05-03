@@ -11,13 +11,15 @@ We also present an argument against a different LTS definition, which can be fou
 
 ## Usage instructions
 
+This mechanization is compatible with Beluga version 1.1.3.
+
 Once Beluga is installed and the correct opam switch is enabled (instructions can be found [here](https://github.com/Beluga-lang/Beluga/blob/master/INSTALL)), it suffices to run
 
 ```Shell
 beluga code/sources.cfg 
 ```
 
-to perform the type reconstruction of the formalization. Expected result is
+to perform the type reconstruction of this formalization. Expected result is
 
 ```Shell
 ## Type Reconstruction begin: ./code/1_definitions.bel ##
@@ -40,13 +42,14 @@ to perform the type reconstruction of the formalization. Expected result is
 ## Type Reconstruction done:  ./code/9_context_lemma.bel ##
 ```
 
-For the LTS change, it is sufficient to run 
+The purpose of the LTS change is to demonstrate that, under different replication rules in the operational semantics, if structural congruence could be shown to preserve every possible action, it would lead to a contradiction. Consequently, the proof of the aforementioned theorem contains gaps.  
+It is sufficient to run 
 
 ```Shell
 beluga code/replication_rule_change/sources.cfg 
 ```
 
-to perform the type reconstruction of the formalization. Since there are some holes, expected result is
+to perform the type reconstruction of this formalization, which contains holes, reflecting the fact that a proof is incomplete.
 
 ```Shell
 ## Type Reconstruction begin: code/replication_rule_change/1_definitions.bel ##

@@ -132,21 +132,25 @@ Equivalence between barbs defined via LTS (`Barb_in`, `Barb_out`) and structural
 
 - `res_new`  
 If $x$ does not occur in $P$, then $\nu x P \equiv P$.
-- `barb_in_red_to_Barb_in`  
-If $P \equiv \nu \vec{z} (x(y).Q \mid R)$, where $x \notin \vec{z}$, then $P \downarrow_x$.
+- `barb_in_rew_to_Barb_in`  
+If $x \notin \vec{z}$, then $\nu \vec{z} (x(y).Q \mid R) \downarrow_x$.
+- `barb_in_struct_to_Barb_in`  
+If $P \equiv \nu \vec{z} (x(y).Q \mid R)$, and $x \notin \vec{z}$, then $P \downarrow_x$.
 - `barb_in_rew_par`  
-If $P \equiv \nu \vec{z} (x(y).Q \mid R)$ and $w \neq x$, then also $\nu w(P \mid P') \equiv \nu \vec{z'} (x(y').Q' \mid R')$ for some $\vec{z'},y',Q',R'$.
+If $P \equiv \nu \vec{z} (x(y).Q \mid R)$, $x \notin \vec{z}$ and $w \neq x$, then also $\nu w(P \mid P') \equiv \nu \vec{z'} (x(y').Q' \mid R')$ for some $\vec{z'},y',Q',R'$ such that $x \notin \vec{z'}$.
 - `barb_in_cong`  
-If $P \equiv \nu \vec{z} (x(y).Q \mid R)$ and $Q \equiv P$, then $Q \equiv \nu \vec{z} (x(y).Q \mid R)$.
-- `Barb_in_to_barb_in_red`  
+If $P \equiv \nu \vec{z} (x(y).Q \mid R)$, $x \notin \vec{z}$ and $Q \equiv P$, then $Q \equiv \nu \vec{z} (x(y).Q \mid R)$.
+- `Barb_in_to_barb_in_struct`  
 If $P \downarrow_x$, then $P \equiv \nu \vec{z} (x(y).Q \mid R)$, for some $\vec{z}, y, Q, R$ such that $x \notin \vec{z}$.
-- `barb_out_red_to_Barb_out`  
-If $P \equiv \nu \vec{z} (\overline{x}y.Q \mid R)$, where $x \notin \vec{z}$, then $P \downarrow_{\overline{x}}$.
+- `barb_out_rew_to_Barb_out`  
+If $x \notin \vec{z}$, then $\nu \vec{z} (\overline{x}y.Q \mid R) \downarrow_{\overline{x}}$.
+- `barb_out_struct_to_Barb_out`  
+If $P \equiv \nu \vec{z} (\overline{x}y.Q \mid R)$, and $x \notin \vec{z}$, then $P \downarrow_{\overline{x}}$.
 - `barb_out_rew_par`  
-If $P \equiv \nu \vec{z} (\overline{x}y.Q \mid R)$ and $w \neq x$, then also $\nu w(P \mid P') \equiv \nu \vec{z'} (\overline{x}y'.Q' \mid R')$ for some $\vec{z'},y',Q',R'$.
+If $P \equiv \nu \vec{z} (\overline{x}y.Q \mid R)$, $x \notin \vec{z}$ and $w \neq x$, then also $\nu w(P \mid P') \equiv \nu \vec{z'} (\overline{x}y'.Q' \mid R')$ for some $\vec{z'},y',Q',R'$ such that $x \notin \vec{z'}$.
 - `barb_out_cong`  
-If $P \equiv \nu \vec{z} (\overline{x}y.Q \mid R)$ and $Q \equiv P$, then $Q \equiv \nu \vec{z} (\overline{x}y.Q \mid R)$.
-- `Barb_out_to_barb_out_red`  
+If $P \equiv \nu \vec{z} (\overline{x}y.Q \mid R)$, $x \notin \vec{z}$ and $Q \equiv P$, then $Q \equiv \nu \vec{z} (\overline{x}y.Q \mid R)$.
+- `Barb_out_to_barb_out_struct`  
 If $P \downarrow_{\overline{x}}$, then $P \equiv \nu \vec{z} (\overline{x}y.Q \mid R)$, for some $\vec{z}, y, Q, R$ such that $x \notin \vec{z}$.
 
 

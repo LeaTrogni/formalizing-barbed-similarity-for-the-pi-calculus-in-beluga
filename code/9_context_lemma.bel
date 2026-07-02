@@ -83,7 +83,8 @@ rec strength_subst_out_b: (g:ctx) (h:ctx) {P : [g |- proc]} {$S : $[h |- g]} [h 
 %%% Properties of the characterization of barbed precongruence %%%
 
 % It is included in barbed similarity
-rec barbpre'_implies_barbsim:  BarbPre' [g |- P] [g |- Q] -> BarbSim [g |- P] [g |- Q] =
+rec barbpre'_implies_barbsim: (g:ctx) BarbPre' [g |- P] [g |- Q] -> BarbSim [g |- P] [g |- Q] =
+  / total bp' (barbpre'_implies_barbsim _ _ _ bp') /
    fn bp' => let BC' bs = bp' in (barb_sim_trans (barb_sim_trans (structcong_implies_barbsim_right Par_unit) (bs $[_ |- ..] [_ |- p_zero])) (structcong_implies_barbsim_left Par_unit))
 ;
 
@@ -196,6 +197,7 @@ rec barbpre'_rep: (g:ctx) (h:ctx) {$S :$[h |- g]} {R : [h |- proc]} BarbPre' [g 
 
 % It is a barbed precongruence
 rec barbpre'_is_precong: (g:ctx) (g':ctx) BarbPre' [g' |- P] [g' |- Q] -> PCtx [g' |- P] [g |- CP] [g' |- Q] [g |- CQ] -> BarbPre' [g |- CP] [g |- CQ] =
+  / total c (barbpre'_is_precong _ _ _ _ _ _ _ c) /
   fn bp' => fn c => (case c of
     | pidM => let BC' bs = bp' in bp'
     | pinM c' => let ih = (barbpre'_is_precong bp' c') in BC' (mlam $S => mlam R => barbpre'_in $[_ |- $S[..]] ih)
@@ -227,5 +229,6 @@ rec barbpre'_implies_largprecong: (g:ctx) BarbPre' [g |- P] [g |- Q] -> LargPreC
 
 % It is included in barbed precongruence
 rec context_lemma: (g:ctx) BarbPre' [g |- P] [g |- Q] -> BarbPre [g |- P] [g |- Q] =
+  / total bp' (context_lemma _ _ _ bp') /
   fn bp' => largprecong_implies_barbpre (barbpre'_implies_largprecong bp')
 ;

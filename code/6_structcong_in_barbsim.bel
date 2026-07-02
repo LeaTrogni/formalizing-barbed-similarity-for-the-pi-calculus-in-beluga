@@ -1,3 +1,4 @@
+--coverage
 %%% These results are an extension of the lemmas in the file https://github.com/Beluga-lang/Beluga/blob/master/case-studies/harmony-lemma-formalization/6_stepcong_lemma.bel, the additions are denoted by "NEW!" %%%
 
 % We want to prove that, if P is congruent to Q and P makes a transition through A to P', then there exists a process Q'

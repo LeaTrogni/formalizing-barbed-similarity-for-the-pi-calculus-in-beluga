@@ -1,0 +1,38 @@
+LF names : type =
+;
+schema ctx = names;
+inductive NSub : {g:ctx} {h:ctx} {$S:$[h |- g]} ctype =
+  | NSNil : {h:ctx} NSub [] [h] $[h |- ^]
+  | NSCons : {Y:[h |- names]} NSub [g] [h] $[h |- $S]
+      -> NSub [g, x:names] [h] $[h |- $S, Y]
+;
+rec nsub_total : {g:ctx} {h:ctx} {$S:$[h |- g]}
+    NSub [g] [h] $[h |- $S] =
+  mlam g, h, $S => case [g] of
+  | [] =>
+      let $[h |- ^] = $[h |- $S] in
+      NSNil [h]
+  | [g, x:names] =>
+      case $[h |- $S] of
+      | $[h |- $T, Y] =>
+          NSCons [h |- Y] (nsub_total [g] [h] $[h |- $T])
+;
+inductive Join : {h:ctx} {g:ctx} {k:ctx} {$W:$[k |- g]} ctype =
+  | JNil : {h:ctx} Join [h] [] [h] $[h |- ^]
+  | JCons : Join [h] [g] [k] $[k |- $W]
+      -> Join [h] [g, x:names] [k, z:names]
+          $[k, z:names |- $W[..], z]
+;
+inductive ExJoin : {h:ctx} {g:ctx} ctype =
+  | ExJoinDef : {k:ctx} {$W:$[k |- g]}
+      Join [h] [g] [k] $[k |- $W] -> ExJoin [h] [g]
+;
+rec join_total : {h:ctx} {g:ctx} ExJoin [h] [g] =
+  / total g (join_total h g) /
+  mlam h, g => case [g] of
+  | [] => ExJoinDef [h] $[h |- ^] (JNil [h])
+  | [g, x:names] =>
+      let ExJoinDef [k] $[k |- $W] j = join_total [h] [g] in
+      ExJoinDef [k, z:names] [g, x:names] [h]
+        $[k, z:names |- $W[..], z] (JCons j)
+;
